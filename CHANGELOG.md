@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`prg/filter/gss_smoother.py`** — exact O(N K²) fixed-interval smoothers on the
+  exactness domains (the smoothing companion paper): `regime_smoother` (HMM
+  forward-backward on the observed chain, kernels `ab` / `c0` / `lag1`),
+  `reweight_smoother` (the CGOMSM1 `{C≡0}` mechanism: smoothed-regime reweighting of the
+  filtered per-regime summaries, mean and variance), `constant_gain_smoother` (the
+  CGOMSM2 (AB) mechanism: pair-weighted one-step ξ-correction with precomputed constant gains
+  `W_{jk}`, no covariance recursion) and `lag1_constant_gain_smoother` (the `{A≡MC}`
+  lag-1 extension). Batch API mirroring `reference_filters`; arbitrary (non-stationary)
+  initial laws are handled by an init-based first slice.
+- **`prg/experiments/reference_smoothers.py`** — `exact_mixture_smoother`, the
+  ground-truth Kᴺ path-enumeration smoother (conditional Kalman + RTS per path),
+  mirroring `exact_mixture_filter`.
+- **`prg/filter/gss_smoother.py` (likelihood/LRT)** — `chain_log_likelihood` (exact
+  log p(y_{1:N}) on the matching family by the O(N K²) forward pass of the observed
+  chain) and `family_lrt` (exact Neyman–Pearson log-ratio between two family models,
+  the P6 membership test); guarded by `tests/test_family_lrt.py` (evidence agreement
+  with GPB2 on the domains, AUC > 0.8 at the strong-coupling cell of the power study).
+- **`prg/learning/unsupervised.py`** — `fit_em_c0`, the Y-only **exact EM** on the
+  CGOMSM1 `{C≡0}` family: E-step = exact smoothed pair posteriors of the observed (R, Y)
+  chain (O(N K²) forward-backward, stationary initial law recomputed each iteration),
+  M-step = closed-form weighted affine regression of (P, D_r, b^Y_r, Σ_V(r)); the
+  state block is a declared nuisance. `c0_chain_to_gss` embeds the fitted chain into
+  a valid `GSSParams`. Guarded by `tests/test_unsupervised.py`: EM iterates identical
+  to the Kᴺ-enumeration EM (< 1e-9), monotone likelihood, state-block flatness, and
+  parameter recovery from a long record.
+- **`tests/test_smoothers.py`** — machine-precision guards (< 1e-9) of the smoothing
+  map against the Kᴺ reference: regime smoothing exact on all three families; state
+  smoothers exact (mean **and variance**) each on its family, including a
+  non-stationary-init AB model and a K = 3 AB model; the two negative results
+  (reweighting fails under AB; the naive smoothed read-out without the backward
+  correction fails); lag-1 ≡ AB smoother on AB; log-likelihood agreement with GPB2
+  on the domains.
+
 ## [3.2.1] — 2026-10-30
 
 ### Fixed
