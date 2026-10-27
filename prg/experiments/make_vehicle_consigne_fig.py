@@ -2,8 +2,8 @@
 """Real-data evidence for the consigne (exogenous-input) extension — vehicle driving.
 
 Downloads the *aggressive* subset of the open dataset "Experimental Sensor Data
-from Vehicles for Dynamic Vehicle Models" (Mendeley 10.17632/x7n6jnjh36.3, mirrored
-on Figshare; real driving at the Continental test track, Veszprém, Hungary; 100 Hz)
+from Vehicles for Dynamic Vehicle Models" (Figshare 10.6084/m9.figshare.28078274.v1,
+CC BY 4.0; real driving at the Continental test track, Veszprém, Hungary; 100 Hz)
 and shows that the **steering input (consigne)** sharply reduces the error of a
 slaving read-out for the yaw rate on held-out data:
 

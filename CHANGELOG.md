@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.1] — 2026-10-27
+
+### Changed
+- ``prg/experiments/tac_simulations.py``, case ``a`` (Section V-A of the TAC paper):
+  ``BASE_A`` now uses ``d_1 = -0.5`` instead of ``0.5``, so that both transition
+  matrices of every tested THGMSM have a spectral radius below 1 (at most 0.75; in
+  experiments 6 and 8, the regime-1 matrix had spectral radius 1.49). At n = 2 and
+  for fixed gaps, ``tau_1`` and ``tau_2`` do not depend on ``d_j``: they and Fig. 4
+  are unchanged (to 3e-16); only the ``b_1`` and ``d_1`` rows of Table I change.
+
+### Fixed
+- The ``paper`` extra now declares ``pyarrow``: case ``c`` of
+  ``prg/experiments/tac_simulations.py`` and the vehicle figure
+  (``make_vehicle_consigne_fig.py``, hence ``make_paper_figures.py``) read Parquet
+  files and failed with an ``ImportError`` after a clean ``pip install -e ".[paper]"``.
+- Dataset reference of case ``c`` and of the vehicle figure: the data come from
+  Figshare 10.6084/m9.figshare.28078274.v1 (CC BY 4.0); the Mendeley record
+  10.17632/x7n6jnjh36.3 cited in 3.1.0 only holds a placeholder file.
+
 ## [3.1.0] — 2026-10-27
 
 ### Added
