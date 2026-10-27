@@ -1,4 +1,4 @@
-# exactIMM — Exact Constant-Gain Filtering in Gaussian Markov Switching Systems
+# awesomeTMC — Triplet Markov Chains for Fast Optimal Filtering in Gaussian Markov Switching Systems
 
 Simulation and **fast exact jump-filtering** algorithms for the paper:
 
@@ -81,8 +81,8 @@ The package is **not on PyPI** — install it from a clone of the repository. A 
 
 ```bash
 # Clone the repository
-git clone https://github.com/SDerrode/exactIMM.git
-cd exactIMM
+git clone https://github.com/SDerrode/awesomeTMC.git
+cd awesomeTMC
 
 # Create and activate the venv (must point to Python 3.14)
 python3.14 -m venv .venv
@@ -113,12 +113,12 @@ make help      # list all targets
 
 Override the bootstrap interpreter if needed: `make venv PYTHON_SYS=/path/to/python3.14`.
 
-### Troubleshooting: `Package 'exactimm' requires a different Python`
+### Troubleshooting: `Package 'awesometmc' requires a different Python`
 
 If `pip install` fails with
 
 ```
-ERROR: Package 'exactimm' requires a different Python: 3.11.15 not in '>=3.14'
+ERROR: Package 'awesometmc' requires a different Python: 3.11.15 not in '>=3.14'
 ```
 
 it means `pip` is bound to a Python interpreter older than 3.14 (typical
@@ -459,11 +459,11 @@ logs            = "logs"
 If you use this code or the AB framework in your work, please cite:
 
 ```bibtex
-@misc{derrode_exactIMM_2026,
+@misc{derrode_awesomeTMC_2026,
   author       = {Derrode, St{\'e}phane and Fernandes, Cl{\'e}ment and Lehmann, Fr{\'e}d{\'e}ric and Hubert-Almuzara, Ugo and Pieczynski, Wojciech},
   title        = {{Exact Constant-Gain Filtering in Gaussian Markov Switching Systems}},
   year         = {2026},
-  howpublished = {\url{https://github.com/SDerrode/exactIMM}},
+  howpublished = {\url{https://github.com/SDerrode/awesomeTMC}},
   note         = {Software accompanying paper preprint},
 }
 ```

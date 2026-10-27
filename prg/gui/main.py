@@ -83,13 +83,13 @@ def main() -> None:
             print(f"[WARNING] Could not load default preset: {exc}", file=sys.stderr)
 
     app = QApplication(sys.argv)
-    app.setApplicationName("exactIMM Simulator")
+    app.setApplicationName("awesomeTMC Simulator")
 
     # Restart loop: recreate the window when a preset with new K/q/s is selected.
     while True:
         win = GSSMainWindow(K=K, q=q, s=s, P=P, model=model)
         # Only apply default size if no saved geometry (QSettings) exists
-        if QSettings("exactIMM", "Simulator").value("geometry") is None:
+        if QSettings("awesomeTMC", "Simulator").value("geometry") is None:
             win.resize(1100, 700)
 
         # Container for the next model (mutable so the lambda can write to it).

@@ -102,7 +102,7 @@ AB_TOL = 1e-6
 # log(2π), used by the fast Gaussian log-pdf (mirrors scipy's _LOG_2PI).
 _LOG_2PI = float(np.log(2.0 * np.pi))
 
-logger = logging.getLogger("exactIMM.filter")
+logger = logging.getLogger("awesomeTMC.filter")
 
 
 # ---------------------------------------------------------------------------

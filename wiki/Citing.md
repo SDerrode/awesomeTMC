@@ -1,4 +1,4 @@
-# Citing exactIMM
+# Citing awesomeTMC
 
 If this code helped your work, please cite both the **paper** (where
 the math is) and the **software** (this repository).
@@ -20,12 +20,12 @@ the preprint is accepted.)
 ## Software
 
 ```bibtex
-@software{derrode_exactIMM_2026,
+@software{derrode_awesomeTMC_2026,
   author       = {Derrode, St{\'e}phane and Pieczynski, Wojciech},
-  title        = {{exactIMM: Fast Optimal Filtering in Gaussian Switching Systems}},
+  title        = {{awesomeTMC: Fast Optimal Filtering in Gaussian Switching Systems}},
   year         = {2026},
   version      = {1.0.0},
-  url          = {https://github.com/SDerrode/exactIMM},
+  url          = {https://github.com/SDerrode/awesomeTMC},
   license      = {AGPL-3.0},
 }
 ```

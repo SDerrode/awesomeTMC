@@ -3,8 +3,8 @@ requires = ["setuptools>=72", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "exactIMM"
-version = "2.1.1"
+name = "awesomeTMC"
+version = "3.0.0"
 description = "Fast optimal filtering in Gaussian switching systems"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -28,9 +28,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/SDerrode/exactIMM"
-Repository = "https://github.com/SDerrode/exactIMM"
-Issues = "https://github.com/SDerrode/exactIMM/issues"
+Homepage = "https://github.com/SDerrode/awesomeTMC"
+Repository = "https://github.com/SDerrode/awesomeTMC"
+Issues = "https://github.com/SDerrode/awesomeTMC/issues"
 
 [project.optional-dependencies]
 gui = [

@@ -1,4 +1,4 @@
-# exactIMM – Application configuration
+# awesomeTMC – Application configuration
 # Edit this file to tune simulation and I/O parameters.
 # Only the keys below are read by the code (general.log_level,
 # paths.data_simulated, paths.logs); everything else is hard-coded.

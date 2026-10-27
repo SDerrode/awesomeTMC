@@ -73,7 +73,7 @@ __all__ = [
 # Paths
 # ---------------------------------------------------------------------------
 
-REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]  # → exactIMM/
+REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]  # → awesomeTMC/
 DEFAULT_IN = REPO_ROOT / "data" / "experiments" / "mc_results.csv"
 # The V1 draft (formerly paper/, then docs/semi-superved_EM/) is deleted; its
 # archived 06_experiments.tex expects these outputs in figures/generated/ next

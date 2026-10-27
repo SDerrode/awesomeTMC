@@ -52,7 +52,7 @@ from prg.utils.ab_constraint import compute_ab_residual
 
 __all__ = ["run_supervised_all", "run_supervised_trial"]
 
-logger = logging.getLogger("exactIMM.experiments.supervised")
+logger = logging.getLogger("awesomeTMC.experiments.supervised")
 
 # ---------------------------------------------------------------------------
 # Protocol constants

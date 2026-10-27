@@ -1,6 +1,6 @@
-# exactIMM — Wiki
+# awesomeTMC — Wiki
 
-Welcome to the **exactIMM** wiki. This software accompanies the paper
+Welcome to the **awesomeTMC** wiki. This software accompanies the paper
 
 > *On Fast Optimal Filtering in Gaussian Switching Systems*  
 > S. Derrode & W. Pieczynski (2026)

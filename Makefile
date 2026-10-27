@@ -1,4 +1,4 @@
-# exactIMM — developer task runner
+# awesomeTMC — developer task runner
 #
 # Every target uses the project virtual-env interpreter explicitly
 # (.venv/bin/python) so commands never run against a wrong, system-wide

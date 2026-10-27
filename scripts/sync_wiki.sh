@@ -4,12 +4,12 @@
 # Push the local wiki/ markdown sources to the GitHub Wiki.
 #
 # Prerequisite: the wiki repo must exist on GitHub. To bootstrap it:
-#   1. Open https://github.com/SDerrode/exactIMM/wiki
+#   1. Open https://github.com/SDerrode/awesomeTMC/wiki
 #   2. Click "Create the first page"
 #   3. Save any placeholder page (it will be overwritten by this script)
 #
 # Then run this script from anywhere; it will:
-#   - clone (or pull) the wiki repo into ../exactIMM.wiki/
+#   - clone (or pull) the wiki repo into ../awesomeTMC.wiki/
 #   - rsync wiki/*.md (except wiki/README.md) into it
 #   - commit + push
 #
@@ -20,7 +20,7 @@
 set -euo pipefail
 
 REPO_OWNER="SDerrode"
-REPO_NAME="exactIMM"
+REPO_NAME="awesomeTMC"
 WIKI_URL="https://github.com/${REPO_OWNER}/${REPO_NAME}.wiki.git"
 
 # Locate this repo's root

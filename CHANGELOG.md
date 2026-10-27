@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] — 2026-10-27
+
+### Changed
+- **Project renamed** from ``exactIMM`` to ``awesomeTMC`` (TMC: triplet Markov
+  chain), a name neutral with respect to the IMM filter and meant to host all the
+  models and filters of the triplet-Markov-chain framework (JMLS, CGOMSM1,
+  CGOMSM2/NGH-MSM, exactness of IMM/GPB2, exact smoothers). The GitHub repository
+  is now ``SDerrode/awesomeTMC`` (the old URL redirects); the distribution name,
+  logger names (``awesomeTMC.*``), GUI session extension (``.awesomeTMC``; old
+  ``.exactIMM`` sessions still open), Zenodo and CITATION metadata were renamed.
+
+### Added
+- ``prg/experiments/tac_simulations.py``: reproduction script of Section V of the
+  IEEE TAC paper (CGOMSM1 vs CGOMSM2): regime-known closed-form error increases
+  (Sec. V-A) and the CGOMSM1→CGOMSM2 path with exact-enumeration and
+  Rao-Blackwellized particle-filter references (Sec. V-B).
+
 ## [2.1.1] — 2026-10-01
 
 ### Fixed

@@ -12,8 +12,8 @@
 ## Quick install (CPU only)
 
 ```bash
-git clone https://github.com/SDerrode/exactIMM.git
-cd exactIMM       # the Python package inside is called `exactIMM`
+git clone https://github.com/SDerrode/awesomeTMC.git
+cd awesomeTMC       # the Python package inside is called `awesomeTMC`
 
 # Create and activate a project virtualenv (use python3.14 explicitly:
 # a system python3 that is < 3.14 will be rejected by pip)
@@ -65,8 +65,8 @@ git pull
 pip install -e ".[dev]" --upgrade
 ```
 
-If a previous version of `exactIMM.egg-info/` lingers and causes
-`ModuleNotFoundError`, just delete it: `rm -rf exactIMM.egg-info` and
+If a previous version of `awesomeTMC.egg-info/` lingers and causes
+`ModuleNotFoundError`, just delete it: `rm -rf awesomeTMC.egg-info` and
 re-run `pip install -e ".[dev]"`.
 
 ## Common issues
