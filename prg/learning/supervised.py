@@ -66,7 +66,7 @@ import numpy as np
 
 __all__ = ["fit_supervised"]
 
-_log = logging.getLogger("exactIMM.learning.supervised")
+_log = logging.getLogger("awesomeTMC.learning.supervised")
 
 
 # ---------------------------------------------------------------------------
@@ -438,7 +438,7 @@ def _fmt_arr(arr: np.ndarray) -> str:
     Format a 2-D numpy array as a compact ``np.array(…)`` literal.
 
     Continuation rows are aligned under the opening bracket, matching the
-    style produced by the exactIMM GUI.  Values are formatted with ``:.8g``
+    style produced by the awesomeTMC GUI.  Values are formatted with ``:.8g``
     (up to 8 significant digits, no trailing zeros).
     """
     prefix = "np.array(["

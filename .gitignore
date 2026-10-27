@@ -44,7 +44,7 @@ logs/*
 # /prg/testsDev/
 
 # VSCodium / VSCode
-exactIMM.code-workspace
+awesomeTMC.code-workspace
 .vscode/
 
 ######################### PYTHON FILES

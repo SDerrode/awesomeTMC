@@ -50,7 +50,7 @@ from prg.utils.exceptions import ParamError, SimulationError
 
 __all__ = ["GSSSimulator"]
 
-logger = logging.getLogger("exactIMM.simulator")
+logger = logging.getLogger("awesomeTMC.simulator")
 
 
 class GSSSimulator:

@@ -446,7 +446,7 @@ def apply_AB_constraint(
     from prg.classes.GSSParams import NGHMSMParams as _NGHMSMParams
     from prg.utils.exceptions import ParamError as _ParamError
 
-    log = logger or logging.getLogger("exactIMM.ab_constraint")
+    log = logger or logging.getLogger("awesomeTMC.ab_constraint")
     K, q, s = params.K, params.q, params.s
 
     A_list: list[np.ndarray] = []

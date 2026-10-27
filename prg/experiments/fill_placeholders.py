@@ -46,7 +46,7 @@ import sys
 import numpy as np
 import pandas as pd
 
-REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]  # → exactIMM/
+REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]  # → awesomeTMC/
 # Archived copy of the V1 draft's experiments section (local, untracked).
 TEX_PATH = REPO_ROOT / "docs" / "attic" / "semi-supervised_EM" / "06_experiments.tex"
 DATA_DIR = REPO_ROOT / "data" / "experiments"

@@ -16,7 +16,7 @@ These markdown files are the source for the project's GitHub Wiki.
 
 GitHub stores wikis in a *separate* git repository at
 `<repo>.wiki.git`. The helper script `scripts/sync_wiki.sh` clones (or
-pulls) `../exactIMM.wiki/`, rsyncs the markdown sources into it
+pulls) `../awesomeTMC.wiki/`, rsyncs the markdown sources into it
 (safely — preserves the wiki's `.git/`), commits and pushes:
 
 ```bash
@@ -26,7 +26,7 @@ pulls) `../exactIMM.wiki/`, rsyncs the markdown sources into it
 
 Bootstrapping (first time only): the wiki repo must exist on GitHub.
 If you've never opened it, visit
-<https://github.com/SDerrode/exactIMM/wiki>, click *Create the first
+<https://github.com/SDerrode/awesomeTMC/wiki>, click *Create the first
 page*, save any placeholder, then run the script.
 
 If you prefer not to maintain a wiki, you can simply delete the

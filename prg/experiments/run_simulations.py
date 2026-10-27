@@ -55,7 +55,7 @@ from prg.filter.gss_filter import GSSFilter
 
 __all__ = ["run_all", "run_one_trial"]
 
-logger = logging.getLogger("exactIMM.experiments")
+logger = logging.getLogger("awesomeTMC.experiments")
 
 # ---------------------------------------------------------------------------
 # Default protocol parameters (overridable via run_all arguments)
