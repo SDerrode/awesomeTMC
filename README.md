@@ -411,9 +411,10 @@ the paper (and in full in the supplementary material).
 - **Determinism.** The synthetic experiments are fully seeded, so the figures and
   the reported RMSE / timing numbers are bit-for-bit reproducible.
 - **Real data.** The vehicle figure downloads the ~20 MB open dataset once
-  (Mendeley `10.17632/x7n6jnjh36.3`, mirrored on Figshare; 100 Hz naturalistic
-  driving) and caches it under `data/real/vehicle/`. The read-out gains
-  $M_r, N_r$ are fitted by ordinary least squares, per speed / steering regime, on
+  (Figshare `10.6084/m9.figshare.28078274.v1`, CC BY 4.0; aggressive-driver
+  recordings on a test track, 100 Hz; the Mendeley record `10.17632/x7n6jnjh36.3`
+  only holds a placeholder) and caches it under `data/real/vehicle/`. The read-out
+  gains $M_r, N_r$ are fitted by ordinary least squares, per speed / steering regime, on
   an 80-file training split; the 30 held-out files give the reported RMSEs
   (details in the supplementary material).
 - **Cost.** The whole suite runs in ~10 minutes single-threaded; no GPU needed.

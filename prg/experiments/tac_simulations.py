@@ -16,7 +16,7 @@ Section V-B (``exp_b``): path F^eps = (1 - eps) F^1 + eps F^2 from the CGOMSM1 (
         excess = E(f - e)^2 / E Var[X | y] (orthogonality: no state noise in the estimate);
       * Rao-Blackwellized particle filter (optimal proposal) on N_LONG; excess = MSE_f / MSE_rbpf - 1.
     eps* = crossing point of the two excess curves.
-Section V-C (``exp_c``): real driving data (Mendeley 10.17632/x7n6jnjh36.3, aggressive driver, 100 Hz,
+Section V-C (``exp_c``): real driving data (Figshare 10.6084/m9.figshare.28078274.v1, aggressive driver, 100 Hz,
     subsampled to 10 Hz). X = yaw rate, Y = lateral acceleration, u_n = (steering angle at n + 1, 1),
     regime = speed band (labelled for training only, hidden in the filters). THGMSM, CGOMSM1 and CGOMSM2
     are fitted per regime by maximum likelihood; each fit reduces to two least-squares regressions:
@@ -153,7 +153,7 @@ def exp_a_mc(m, n=200_000, seed=0):
 
 # V-A design: coupling x gap to CGOMSM2 x noise correlation (2 x 2 x 2)
 BASE_A = dict(
-    d=[0.5, -0.3], su=[1.0, 0.8], sv=[0.5, 1.0], sx1=[1.0, 1.0], sy1=[1.0, 1.0], lam=[0.5, 0.5]
+    d=[-0.5, -0.3], su=[1.0, 0.8], sv=[0.5, 1.0], sx1=[1.0, 1.0], sy1=[1.0, 1.0], lam=[0.5, 0.5]
 )
 LEVELS_A = dict(c=(0.2, 1.0), g=(0.05, 0.5), rf=(0.2, 0.7))
 
