@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.0] — 2026-10-27
+
+### Added
+- ``prg/experiments/tac_simulations.py``, case ``c``: Section V-C of the IEEE TAC
+  paper, on real driving data (Mendeley 10.17632/x7n6jnjh36.3, yaw rate / lateral
+  acceleration / steering input, speed-band regimes hidden in the filters).
+  THGMSM, CGOMSM1 and CGOMSM2 are fitted by maximum likelihood, each reduced to two
+  least-squares regressions; the exact CGOMSM1/CGOMSM2 filters with known input, an
+  RBPF for the THGMSM and a single-regime Kalman filter are compared on held-out
+  recordings (yaw RMSE, log-likelihood of the observations). ``--data`` points to
+  the cached dataset.
+
 ## [3.0.0] — 2026-10-27
 
 ### Changed

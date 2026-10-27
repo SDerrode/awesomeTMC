@@ -16,8 +16,17 @@ Section V-B (``exp_b``): path F^eps = (1 - eps) F^1 + eps F^2 from the CGOMSM1 (
         excess = E(f - e)^2 / E Var[X | y] (orthogonality: no state noise in the estimate);
       * Rao-Blackwellized particle filter (optimal proposal) on N_LONG; excess = MSE_f / MSE_rbpf - 1.
     eps* = crossing point of the two excess curves.
+Section V-C (``exp_c``): real driving data (Mendeley 10.17632/x7n6jnjh36.3, aggressive driver, 100 Hz,
+    subsampled to 10 Hz). X = yaw rate, Y = lateral acceleration, u_n = (steering angle at n + 1, 1),
+    regime = speed band (labelled for training only, hidden in the filters). THGMSM, CGOMSM1 and CGOMSM2
+    are fitted per regime by maximum likelihood; each fit reduces to two least-squares regressions:
+      THGMSM : (x', y') on (x, y, u);
+      CGOMSM1: y' on (y, u), then x' on (x, y, y', u);
+      CGOMSM2: y' on (x, y, u), then x' on (y', u).
+    Held-out files: yaw RMSE and log-likelihood of Y of the exact CGOMSM1 / CGOMSM2 filters, of an RBPF
+    for the THGMSM, and of the Kalman filter of a single-regime THGMSM; with and without the steering input.
 
-Run:  python -m prg.experiments.tac_simulations [a|b|all] [--out DIR] [--seeds S]
+Run:  python -m prg.experiments.tac_simulations [a|b|c|all] [--out DIR] [--data DIR]
 """
 
 from __future__ import annotations
@@ -541,14 +550,362 @@ def _plot_b(res, path):
     plt.close(fig)
 
 
+# ----------------------------------------------------------------------------- Section V-C: real data
+SUB_C = 10  # 100 Hz -> 10 Hz
+TEST_EVERY = 4  # every 4th file (sorted order) is held out
+
+
+def load_vehicle(data_dir: Path, sub: int = SUB_C):
+    """List of per-file arrays [yaw (deg/s), a_lat (g), steering (deg), speed (km/h)], subsampled."""
+    import pandas as pd
+
+    from prg.experiments import make_vehicle_consigne_fig as mv
+    from prg.experiments.make_vehicle_consigne_fig import ALAT, STR, WS, YAW, _ensure_data, _num
+
+    mv.CACHE = Path(data_dir)
+    seqs = []
+    for f in _ensure_data():
+        d = pd.read_parquet(f)
+        for c in [YAW, ALAT, STR, *WS]:
+            d[c] = _num(d[c])
+        d["spd"] = d[WS].mean(axis=1)
+        a = d.dropna(subset=[YAW, ALAT, STR, "spd"])[[YAW, ALAT, STR, "spd"]].to_numpy()[::sub]
+        if len(a) > 50:
+            seqs.append(a)
+    return seqs
+
+
+def _ols(target, design):
+    b, *_ = np.linalg.lstsq(design, target, rcond=None)
+    return b, float(np.mean((target - design @ b) ** 2))
+
+
+def _xyu(seq, sc, use_input):
+    """Scaled state, observation, and input u_n = (steering_{n+1}, 1) stored at index n + 1."""
+    x, y = seq[:, 0] / sc[0], seq[:, 1] / sc[1]
+    st = seq[:, 2] / sc[2] if use_input else np.zeros(len(seq))
+    return x, y, np.c_[st, np.ones(len(seq))]
+
+
+def fit_c(train, K, edges, sc, use_input=True):
+    """Per-regime ML fits of the THGMSM, CGOMSM1 and CGOMSM2 (regimes labelled by the speed band)."""
+    P = np.ones((K, K))
+    rows = {k: [] for k in range(K)}
+    first = {k: [] for k in range(K)}
+    for s in train:
+        x, y, u = _xyu(s, sc, use_input)
+        r = np.searchsorted(edges, s[:, 3])
+        np.add.at(P, (r[:-1], r[1:]), 1)
+        for k in range(K):
+            first[k].append(np.c_[x[r == k], y[r == k]])
+            i = np.where(r[1:] == k)[0]
+            rows[k].append(np.c_[x[i], y[i], u[i + 1], x[i + 1], y[i + 1]])
+    P /= P.sum(axis=1, keepdims=True)
+    p1 = np.array([sum(len(a) for a in first[k]) for k in range(K)], float)
+    mods = {"thgmsm": [], "cgomsm1": [], "cgomsm2": []}
+    for k in range(K):
+        D = np.vstack(rows[k])
+        xn, yn, un, xp, yp = D[:, 0], D[:, 1], D[:, 2:4], D[:, 4], D[:, 5]
+        Z1 = np.vstack(first[k])
+        base = {"S1": Z1.T @ Z1 / len(Z1)}  # E[Z_1 Z_1^T | r_1] (centred model)
+        des = np.c_[xn, yn, un]
+        bx, _ = _ols(xp, des)
+        by, _ = _ols(yp, des)
+        SW = np.cov(np.c_[xp - des @ bx, yp - des @ by].T, bias=True)
+        mods["thgmsm"].append(
+            dict(
+                base,
+                a=bx[0],
+                b=bx[1],
+                lx=bx[2:],
+                c=by[0],
+                d=by[1],
+                ly=by[2:],
+                su=SW[0, 0],
+                rho=SW[0, 1],
+                sv=SW[1, 1],
+            )
+        )
+        b1, sv = _ols(yp, np.c_[yn, un])
+        d, ly = b1[0], b1[1:]
+        b2, se = _ols(xp, np.c_[xn, yn, yp, un])
+        g = b2[2]
+        mods["cgomsm1"].append(
+            dict(
+                base,
+                a=b2[0],
+                b=b2[1] + g * d,
+                lx=b2[3:] + g * ly,
+                c=0.0,
+                d=d,
+                ly=ly,
+                su=se + g * g * sv,
+                rho=g * sv,
+                sv=sv,
+            )
+        )
+        b1, sv = _ols(yp, des)
+        c, d, ly = b1[0], b1[1], b1[2:]
+        b2, gam = _ols(xp, np.c_[yp, un])
+        M = b2[0]
+        mods["cgomsm2"].append(
+            dict(
+                base,
+                a=M * c,
+                b=M * d,
+                lx=b2[1:] + M * ly,
+                c=c,
+                d=d,
+                ly=ly,
+                su=gam + M * M * sv,
+                rho=M * sv,
+                sv=sv,
+            )
+        )
+    return {n: {"K": K, "P": P, "p1": p1 / p1.sum(), "reg": v} for n, v in mods.items()}
+
+
+def _init_c(m, y1):
+    """log p(r_1, y_1), E[X_1 | r_1, y_1], Var[X_1 | r_1, y_1] for the centred initial law."""
+    S = np.array([R["S1"] for R in m["reg"]])
+    ll = np.log(m["p1"]) + _lognorm(y1, 0.0, S[:, 1, 1])
+    return ll, S[:, 0, 1] / S[:, 1, 1] * y1, S[:, 0, 0] - S[:, 0, 1] ** 2 / S[:, 1, 1]
+
+
+def _lse(v):
+    a = np.max(v)
+    return a + np.log(np.sum(np.exp(v - a)))
+
+
+def cgo_filter_c(m, y, u, family):
+    """Exact filter of a CGOMSM1 or CGOMSM2 with input; returns E[X_n | y_{1:n}] and log p(y_{1:N})."""
+    K, N, Rg = m["K"], len(y), m["reg"]
+    ll0, mu, var = _init_c(m, y[0])
+    LL = _lse(ll0)
+    pi = np.exp(ll0 - LL)
+    E = np.empty(N)
+    E[0] = pi @ mu
+    for n in range(1, N):
+        lk = np.empty((K, K))
+        mjk = np.empty((K, K))
+        for k, R in enumerate(Rg):
+            if family == "cgomsm1":  # y_{n+1} | r_{n+1}, y_n; X_{n+1} | r_n, r_{n+1}, y_{1:n+1}
+                my = R["d"] * y[n - 1] + R["ly"] @ u[n]
+                lk[:, k] = _lognorm(y[n], my, R["sv"])
+                mjk[:, k] = (
+                    R["a"] * mu
+                    + R["b"] * y[n - 1]
+                    + R["lx"] @ u[n]
+                    + R["rho"] / R["sv"] * (y[n] - my)
+                )
+            else:  # Prop. 3 transition (first step from the initial law), Prop. 4 read-out
+                my = R["c"] * mu + R["d"] * y[n - 1] + R["ly"] @ u[n]
+                lk[:, k] = _lognorm(y[n], my, R["c"] ** 2 * var + R["sv"])
+                M = R["rho"] / R["sv"]
+                mjk[:, k] = M * y[n] + (R["lx"] - M * R["ly"]) @ u[n]
+        L = np.log(np.maximum(pi, 1e-300))[:, None] + np.log(m["P"]) + lk
+        a = L.max()
+        J = np.exp(L - a)
+        LL += a + np.log(J.sum())
+        col = J.sum(axis=0)
+        mu = (J / np.maximum(col, 1e-300)[None, :] * mjk).sum(
+            axis=0
+        )  # underflowed regimes: weight 0
+        pi = col / col.sum()
+        if family == "cgomsm2":
+            var = np.array([R["su"] - R["rho"] ** 2 / R["sv"] for R in Rg])
+        E[n] = pi @ mu
+    return E, LL
+
+
+def rbpf_c(m, y, u, n_part, rng):
+    """RBPF (optimal proposal) for a THGMSM with input; exact Kalman filter when K = 1."""
+    K, N, Rg = m["K"], len(y), m["reg"]
+    ll0, m0, v0 = _init_c(m, y[0])
+    LL = _lse(ll0)
+    r = rng.choice(K, size=n_part, p=np.exp(ll0 - LL))
+    mu, Pv = m0[r], v0[r]
+    w = np.full(n_part, 1.0 / n_part)
+    E = np.empty(N)
+    E[0] = w @ mu
+    for n in range(1, N):
+        cand = []
+        for R in Rg:
+            my = R["c"] * mu + R["d"] * y[n - 1] + R["ly"] @ u[n]
+            vy = R["c"] ** 2 * Pv + R["sv"]
+            mx = R["a"] * mu + R["b"] * y[n - 1] + R["lx"] @ u[n]
+            cxy = R["a"] * R["c"] * Pv + R["rho"]
+            gain = cxy / vy
+            cand.append(
+                (
+                    _lognorm(y[n], my, vy),
+                    mx + gain * (y[n] - my),
+                    R["a"] ** 2 * Pv + R["su"] - gain * cxy,
+                )
+            )
+        lj = np.stack([np.log(m["P"][r, k]) + cand[k][0] for k in range(K)])
+        lmax = lj.max(axis=0)
+        pj = np.exp(lj - lmax)
+        tot = pj.sum(axis=0)
+        logw = np.log(w) + lmax + np.log(tot)
+        LL += _lse(logw)
+        ch = np.minimum(
+            (rng.random(n_part)[None, :] > np.cumsum(pj / tot, axis=0)).sum(axis=0), K - 1
+        )
+        mu = np.choose(ch, [c[1] for c in cand])
+        Pv = np.choose(ch, [c[2] for c in cand])
+        r = ch
+        w = np.exp(logw - logw.max())
+        w /= w.sum()
+        E[n] = w @ mu
+        if 1.0 / np.sum(w**2) < n_part / 2:  # systematic resampling
+            v = (rng.random() + np.arange(n_part)) / n_part
+            idx = np.minimum(np.searchsorted(np.cumsum(w), v), n_part - 1)
+            mu, Pv, r = mu[idx], Pv[idx], r[idx]
+            w = np.full(n_part, 1.0 / n_part)
+    return E, LL
+
+
+def _split(seqs, K):
+    test = seqs[TEST_EVERY - 1 :: TEST_EVERY]
+    train = [s for i, s in enumerate(seqs) if i % TEST_EVERY != TEST_EVERY - 1]
+    allv = np.vstack(train)
+    edges = np.quantile(allv[:, 3], np.linspace(0, 1, K + 1)[1:-1])
+    return train, test, edges, allv[:, :3].std(axis=0)
+
+
+def _score(test, sc, use_input, run):
+    se, ll, n = 0.0, 0.0, 0
+    for s in test:
+        x, y, u = _xyu(s, sc, use_input)
+        E, L = run(y, u)
+        se += float(np.sum((E * sc[0] - s[:, 0]) ** 2))
+        ll += L - len(y) * np.log(sc[1])  # log-likelihood of the unscaled a_lat (in g)
+        n += len(y)
+    return {"rmse": float(np.sqrt(se / n)), "loglik": float(ll / n)}
+
+
+def exp_c(out: Path, data_dir: Path, K: int = 2, n_part: int = 500):
+    out.mkdir(parents=True, exist_ok=True)
+    rng = np.random.default_rng(0)
+    res = {"K": K, "sub": SUB_C, "main": {}, "grid": []}
+    seqs = load_vehicle(data_dir)
+    train, test, edges, sc = _split(seqs, K)
+    res.update(
+        n_train=len(train),
+        n_test=len(test),
+        n_test_samples=int(sum(len(s) for s in test)),
+        speed_edges_kmh=edges.tolist(),
+    )
+    for use_input in (True, False):
+        mods = fit_c(train, K, edges, sc, use_input)
+        one = fit_c(train, 1, np.array([]), sc, use_input)
+        runs = {
+            "cgomsm1": lambda y, u, m=mods["cgomsm1"]: cgo_filter_c(m, y, u, "cgomsm1"),
+            "cgomsm2": lambda y, u, m=mods["cgomsm2"]: cgo_filter_c(m, y, u, "cgomsm2"),
+            "thgmsm_rbpf": lambda y, u, m=mods["thgmsm"]: rbpf_c(m, y, u, n_part, rng),
+            "kalman_K1": lambda y, u, m=one["thgmsm"]: rbpf_c(m, y, u, 1, rng),
+        }
+        key = "input" if use_input else "no_input"
+        res["main"][key] = {name: _score(test, sc, use_input, f) for name, f in runs.items()}
+        if use_input:  # check: RBPF on each CGOMSM reproduces its exact filter
+            res["rbpf_check"] = {
+                fam: _score(test, sc, True, lambda y, u, m=mods[fam]: rbpf_c(m, y, u, n_part, rng))
+                for fam in ("cgomsm1", "cgomsm2")
+            }
+            res["params"] = {
+                fam: [
+                    {k: np.asarray(v).tolist() for k, v in R.items() if k != "S1"}
+                    for R in mods[fam]["reg"]
+                ]
+                for fam in mods
+            }
+            res["P"] = mods["thgmsm"]["P"].tolist()
+            # trace for the figure: longest test file
+            s = max(test, key=len)
+            x, y, u = _xyu(s, sc, True)
+            res["trace"] = {
+                "t": (np.arange(len(s)) * SUB_C / 100.0).tolist(),
+                "yaw": s[:, 0].tolist(),
+                "speed": s[:, 3].tolist(),
+                **{
+                    fam: (cgo_filter_c(mods[fam], y, u, fam)[0] * sc[0]).tolist()
+                    for fam in ("cgomsm1", "cgomsm2")
+                },
+            }
+    # robustness of the comparison: exact CGOMSM filters for other sampling rates and K
+    for sub, k in itertools.product((5, 10, 20), (2, 3)):
+        sq = seqs if sub == SUB_C else load_vehicle(data_dir, sub)
+        tr, te, ed, s_ = _split(sq, k)
+        mm = fit_c(tr, k, ed, s_, True)
+        row = {"sub": sub, "K": k}
+        for fam in ("cgomsm1", "cgomsm2"):
+            row[fam] = _score(te, s_, True, lambda y, u, m=mm[fam], f=fam: cgo_filter_c(m, y, u, f))
+        res["grid"].append(row)
+    (out / "exp_c.json").write_text(json.dumps(res, indent=1))
+    _table_c(res, out / "table_c.tex")
+    _plot_c(res, out / "fig_c_vehicle.pdf")
+    return res
+
+
+def _table_c(res, path):
+    m = res["main"]
+    lines = [
+        r"\begin{tabular}{@{}lccc@{}}",
+        r"\toprule",
+        r"filter & \multicolumn{2}{c}{yaw-rate RMSE (deg/s)} & log-lik. of $Y$ \\",
+        r" & with $u$ & without $u$ & with $u$ \\",
+        r"\midrule",
+    ]
+    names = (
+        ("cgomsm1", "CGOMSM1 (exact)"),
+        ("cgomsm2", "CGOMSM2 (exact)"),
+        ("thgmsm_rbpf", "THGMSM (RBPF)"),
+        ("kalman_K1", "THGMSM, $K = 1$ (Kalman)"),
+    )
+    for key, lab in names:
+        lines.append(
+            f"{lab} & ${m['input'][key]['rmse']:.2f}$ & ${m['no_input'][key]['rmse']:.2f}$"
+            f" & ${m['input'][key]['loglik']:.2f}$ \\\\"
+        )
+    lines += [r"\bottomrule", r"\end{tabular}"]
+    path.write_text("\n".join(lines) + "\n")
+
+
+def _plot_c(res, path):
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    plt.rcParams.update({"font.size": 7, "font.family": "serif"})
+    tr = res["trace"]
+    t = np.array(tr["t"])
+    sel = slice(0, min(len(t), 600))  # first 60 s
+    fig, ax = plt.subplots(figsize=(3.45, 1.9))
+    ax.plot(t[sel], np.array(tr["yaw"])[sel], color="k", lw=1.0, label="true yaw rate")
+    ax.plot(t[sel], np.array(tr["cgomsm1"])[sel], color="C0", lw=0.8, label="CGOMSM1 filter")
+    ax.plot(
+        t[sel], np.array(tr["cgomsm2"])[sel], color="C3", lw=0.8, ls="--", label="CGOMSM2 filter"
+    )
+    ax.set_xlabel("time (s)")
+    ax.set_ylabel("yaw rate (deg/s)")
+    ax.grid(alpha=0.3)
+    ax.legend(fontsize=6, frameon=False, ncol=3, loc="upper center", bbox_to_anchor=(0.5, 1.18))
+    fig.tight_layout()
+    fig.savefig(path)
+    plt.close(fig)
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("which", nargs="?", default="all", choices=("a", "b", "all"))
+    ap.add_argument("which", nargs="?", default="all", choices=("a", "b", "c", "all"))
     ap.add_argument("--out", type=Path, default=OUT)
     ap.add_argument("--seeds-short", type=int, default=300)
     ap.add_argument("--seeds-long", type=int, default=100)
     ap.add_argument("--particles", type=int, default=1000)
     ap.add_argument("--n-eps", type=int, default=21)
+    ap.add_argument("--data", type=Path, default=Path("data/real/vehicle"))
     a = ap.parse_args()
     if a.which in ("a", "all"):
         for r in exp_a(a.out):
@@ -562,6 +919,13 @@ def main():
             print(
                 f"exp {k}: eps* short = {r['eps_star_short']:.3f}, long = {r['eps_star_long']:.3f}"
             )
+    if a.which in ("c", "all"):
+        res = exp_c(a.out, a.data)
+        for key, v in res["main"].items():
+            for name, sc in v.items():
+                print(f"{key:8s} {name:12s} RMSE={sc['rmse']:.3f}  loglik={sc['loglik']:.3f}")
+        for row in res["grid"]:
+            print(row)
 
 
 if __name__ == "__main__":
