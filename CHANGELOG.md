@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- ``codemeta.json`` and ``AUTHORS.md``, for the deposit of the software on HAL via Software
+  Heritage.
+
 ## [3.1.2] — 2026-10-28
 
 ### Added
