@@ -30,16 +30,28 @@ Modes
                  moments of regime k;
       Step (IV)  combination using π_{n+1}(k).
 
-    Exact if and only if the AB constraint holds; a ``RuntimeWarning`` is
-    emitted at construction when the relative residual exceeds ``AB_TOL``.
+    Exact when the AB constraint holds **and** the stated Gaussian initial law
+    has the stationary moments, i.e. ``pi0`` = π_∞ and Z_1 | r_1 = k ~
+    N(µ(k), Σ(k)): the first step uses these moments and ignores ``pi0``,
+    ``mu_z0`` and ``Sigma_z0``. (Under AB, the stationary law of Z_n given
+    r_n = k is in general a Gaussian mixture over the regime history, with
+    moments µ(k), Σ(k); it is not this Gaussian law.) For another initial law,
+    use ``mode="gpb2"``, which is exact on AB models whatever the initial law.
+    A ``RuntimeWarning`` is emitted at construction when the relative AB
+    residual exceeds ``AB_TOL``.
 
 ``mode="gpb2"`` — generalised pseudo-Bayesian, order 2
     Keeps one Gaussian per current regime; each step expands to the K² regime
     pairs (previous, current), runs K² exact-observation Kalman updates, then
     collapses back to K by merging over the previous regime.
 
-    Exact whenever C(k) = 0 or A(k) = Δ(k) Σ_V(k)⁻¹ C(k) — a strictly larger
-    region than AB — and an approximation elsewhere, the only loss being the
+    Exact, whatever the initial law, when C(k) (A(j) − M(j) C(j)) = 0 for every
+    ordered regime pair (j, k), with M(j) = Δ(j) Σ_V(j)⁻¹ (cross-annihilation),
+    and only then under the non-degeneracy assumption (G) of
+    :mod:`prg.utils.exactness`; this region contains the C = 0 models and the
+    AB models. For a scalar state it reads "C = 0 at every regime, or
+    A = M C at every regime": mixing the two conditions regime by regime is
+    NOT exact. Elsewhere GPB2 is an approximation, the only loss being the
     depth-2 collapse. It carries K² Riccati updates per step, so unlike
     ``ngh_kf`` its cost grows with the state dimension.
 
@@ -172,16 +184,22 @@ class GSSFilter:
         * ``"ngh_kf"`` — exact constant-gain filter, with stationary
           pre-computed regime moments and no covariance recursion, so its
           per-step cost does not grow with the state dimension. Requires the
-          AB constraint for every regime k; emits a ``RuntimeWarning`` at
+          AB constraint for every regime k and starts from the Gaussian law
+          with the stationary moments, p(r_1) = π_∞ and Z_1 | r_1 = k ~
+          N(µ(k), Σ(k)) (``pi0``, ``mu_z0``, ``Sigma_z0`` are ignored; use
+          ``"gpb2"`` for another initial law); emits a ``RuntimeWarning`` at
           construction when the relative residual exceeds ``AB_TOL``. To
           enforce AB automatically, use
           :func:`prg.utils.ab_constraint.apply_AB_constraint`, which
           recomputes A(k), B(k) from (C, D, Δ, Σ_V) via the closed form
           A = Δ Σ_V⁻¹ C, B = Δ Σ_V⁻¹ D.
         * ``"gpb2"`` — generalised pseudo-Bayesian order 2: K² regime-pair
-          Kalman updates per step, then a collapse back to K. Exact whenever
-          C(k) = 0 or A(k) = Δ(k) Σ_V(k)⁻¹ C(k); an approximation elsewhere.
-          Use it on any model that violates AB.
+          Kalman updates per step, then a collapse back to K. Exact,
+          whatever the initial law, iff C(k) (A(j) − M(j) C(j)) = 0 for every
+          ordered pair (j, k) (under assumption (G) of
+          :mod:`prg.utils.exactness`; for a scalar state: C = 0 at every
+          regime, or A = M C at every regime, mixing the two is NOT exact);
+          an approximation elsewhere. Use it on any model that violates AB.
 
     Examples
     --------

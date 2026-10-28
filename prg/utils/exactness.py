@@ -18,7 +18,10 @@ classical collapse filters reproduce the exact Bayes filter:
                       A = M C at every regime", and in higher dimension it also
                       admits a memory confined to the kernel of the channel;
 * constant gain    -- exact iff the AB constraint holds
-                      (:func:`prg.utils.ab_constraint.ab_residual_max`).
+                      (:func:`prg.utils.ab_constraint.ab_residual_max`), for
+                      the Gaussian initial law with the stationary moments
+                      (p(r_1) = pi_inf, Z_1 | r_1 = k ~ N(mu(k), Sigma(k)))
+                      from which ``GSSFilter(mode="ngh_kf")`` starts.
 
 All three are stated under the non-degeneracy assumption (G) of the paper. The
 functions below return *relative* residuals (0 on the domain, up to ~1e-15 in

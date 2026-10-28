@@ -37,20 +37,20 @@ keywords:
   - ENSO
   - signal processing
 license: AGPL-3.0
-version: "3.1.1"
-date-released: "2026-10-27"
+version: "3.1.2"
+date-released: "2026-10-28"
 preferred-citation:
   type: generic
-  title: "Exact Constant-Gain Filtering in Gaussian Markov Switching Systems"
+  title: "On a New Family of Models for Exact Fast Filtering in Gaussian Markov Switching Systems"
   authors:
     - given-names: Stéphane
       family-names: Derrode
     - given-names: Clément
       family-names: Fernandes
-    - given-names: Frédéric
-      family-names: Lehmann
     - given-names: Ugo
       family-names: Hubert-Almuzara
+    - given-names: Frédéric
+      family-names: Lehmann
     - given-names: Wojciech
       family-names: Pieczynski
   year: 2026
