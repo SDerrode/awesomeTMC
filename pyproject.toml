@@ -10,7 +10,6 @@ readme = "README.md"
 license = { file = "LICENSE" }
 authors = [
     { name = "Stéphane Derrode", email = "stephane.derrode@ec-lyon.fr" },
-    { name = "Wojciech Pieczynski", email = "wojciech.pieczynski@telecom-sudparis.eu" },
 ]
 requires-python = ">=3.14"
 classifiers = [

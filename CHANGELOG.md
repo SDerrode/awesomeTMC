@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ``codemeta.json`` and ``AUTHORS.md``, for the deposit of the software on HAL via Software
   Heritage.
 
+### Changed
+- ``pyproject.toml``: the package author list now matches ``CITATION.cff``, Zenodo and
+  ``codemeta.json`` (S. Derrode).
+
 ## [3.1.2] — 2026-10-28
 
 ### Added
