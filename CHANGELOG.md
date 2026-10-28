@@ -7,6 +7,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.2] — 2026-10-28
+
+### Added
+- ``prg/experiments/tac_simulations.py`` (Section V of the IEEE TAC paper):
+  - case ``b`` now generates Table II (``table_b.tex``). ``exp_b.json`` stores the
+    configuration (horizons, numbers of sequences and particles, seeds), the RBPF
+    accuracy checks, 95% Monte Carlo half-widths by the delta method for the ratio of
+    means (also for the N = 10 curves), bootstrap intervals over sequences for the
+    crossing points and for the maxima over eps, and the excess of the long sequences
+    split into the first ``n_short`` steps and the following ones. The per-sequence
+    errors are stored in ``exp_b_seq.npz``;
+  - RBPF accuracy check at eps = 0 and eps = 1 on the N = 200 sequences, where the
+    exact CGOMSM1 / CGOMSM2 filters are optimal; ``validate_rbpf`` now uses
+    ``--particles``;
+  - ``cgomsm1_filter`` / ``cgomsm2_filter``: ``return_var=True`` also returns
+    Var[X_n | y_{1:n}];
+  - case ``transient`` (also run by ``b``): at the two ends of the path, where the
+    optimal filter is exact on long sequences, excess of the other family over the
+    first ``n_short`` steps and over the following ones (initial transient, which
+    explains the different levels of the N = 10 and N = 200 curves);
+  - cases ``timing`` (computing time per time step, ``timing.json``) and ``replot``
+    (tables, figures and the summaries of ``exp_b.json`` from the stored results,
+    without simulating);
+  - case ``c``: ``exp_c.json`` records the file counts, the discarded recording, a
+    SHA-256 fingerprint of the data, the standardization scales and the correlations
+    of the training samples.
+- ``tests/test_tac_simulations.py``: the filters of the script against brute-force
+  enumeration of the regime paths (with and without input, arbitrary initial law),
+  ``rbpf_c`` with K = 1 against a Kalman filter, the family checks, the closed forms
+  of Section V-A against Monte Carlo, the generated tables and the download check.
+
+### Changed
+- Case ``a``: the Monte Carlo check simulates the dynamic form (2e6 samples, with
+  standard errors and z-scores) instead of sampling the closed-form covariance. The
+  tau values are unchanged; Table I shows them with 4 decimals, negative numbers
+  with a true minus sign, and "exp." in its corner cell, as in Table II.
+- Case ``c``: the recordings of at most 5 s (500 samples at 100 Hz) are discarded
+  before subsampling, so that the same 134 recordings (split 101/33) are used at every
+  sampling rate. Only the 5 Hz rows of the robustness grid change (they used 132
+  recordings); the values of Table III and the 10 and 20 Hz rows are unchanged. The
+  header of Table III reads "with / without delta" (without the steering angle, the
+  constant term of the input is kept), with a rule under its two-column heading.
+- Figures of the three cases: 8 pt STIX serif fonts embedded as TrueType (no Type 3
+  font), markers (cases ``a`` and ``b``) or line styles (case ``c``) that distinguish
+  the two families without colour, no creation date in the PDF; the plotted data are unchanged. In the case ``b`` figure, the bands are
+  the delta-method half-widths of the ratio of means (they were computed from the
+  per-sequence ratios), and the N = 10 curves have bands too.
+- ``make_vehicle_consigne_fig._ensure_data`` takes the cache directory as an argument
+  (``tac_simulations`` no longer modifies the module-level ``CACHE``) and checks the
+  MD5 published by Figshare before extracting the download.
+- README and ``CITATION.cff``: title and author list of the paper (Derrode, Fernandes,
+  Hubert-Almuzara, Lehmann, Pieczynski); new README section "Reproducing Section V of
+  the paper"; the ``make_paper_figures.py`` section now refers to an earlier draft.
+
+### Fixed
+- Docstrings of ``GSSFilter`` and ``prg/utils/exactness.py``: the ``ngh_kf`` mode is
+  exact on AB models only when the stated Gaussian initial law has the stationary
+  moments, p(r_1) = pi_inf and Z_1 | r_1 = k ~ N(mu(k), Sigma(k)) (it ignores
+  ``pi0``, ``mu_z0``, ``Sigma_z0``); the ``gpb2`` mode is exact iff
+  C(k) (A(j) - M(j) C(j)) = 0 for every pair (j, k), so that, for a scalar state,
+  mixing C = 0 and A = M C regime by regime is not exact.
+- ``tac_simulations.py``: ``cgo_filter_c`` raises ``ValueError`` on an unknown family
+  or on a model that violates the constraints of the family; underflow guard in
+  ``cgomsm1_filter``; the check of a common Sigma_Z1 in case ``a`` includes
+  ``sy1``; obsolete references and an unused argument removed.
+
 ## [3.1.1] — 2026-10-27
 
 ### Changed

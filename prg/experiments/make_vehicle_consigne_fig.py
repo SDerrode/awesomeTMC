@@ -22,6 +22,7 @@ The ~20 MB download is cached under data/real/vehicle/.
 from __future__ import annotations
 
 import glob
+import hashlib
 import io
 import urllib.request
 import zipfile
@@ -31,25 +32,36 @@ import numpy as np
 import pandas as pd
 
 FIGSHARE_AGGRESSIVE = "https://ndownloader.figshare.com/files/52533854"  # aggressive_driver.zip
+FIGSHARE_AGGRESSIVE_MD5 = "cb3acee1cabe0183cf74b2f83ddd4abc"  # computed_md5 of file 52533854 (API)
 CACHE = Path("data/real/vehicle")
 OUT = Path("docs/rapport_consigne/figures/vehicle_consigne.pdf")
 
 YAW = "Yaw rate [deg/s]"
 ALAT = "Lateral acceleration [g]"
-STR = "Steering angle of first axle [s]"  # degrees (header unit is a typo)
+# front-axle (road-wheel) steering angle, in degrees: the Figshare description gives
+# "Front axle steering angle [°]"; the "[s]" of the column header is a typo
+STR = "Steering angle of first axle [s]"
 WS = [f"Wheel speed ({w}) [km/h]" for w in ("Front Left", "Front Right", "Rear Right", "Rear Left")]
 
 
-def _ensure_data() -> list[str]:
-    CACHE.mkdir(parents=True, exist_ok=True)
-    files = sorted(glob.glob(str(CACHE / "**" / "*.parquet"), recursive=True))
+def _ensure_data(cache: Path | None = None) -> list[str]:
+    """Parquet files of the aggressive-driver recordings, downloaded once into ``cache``.
+
+    The download is checked against the MD5 published by Figshare before it is extracted.
+    """
+    cache = CACHE if cache is None else Path(cache)
+    cache.mkdir(parents=True, exist_ok=True)
+    files = sorted(glob.glob(str(cache / "**" / "*.parquet"), recursive=True))
     if files:
         return files
     print("downloading aggressive_driver.zip (~20 MB) from Figshare …")
     raw = urllib.request.urlopen(FIGSHARE_AGGRESSIVE, timeout=120).read()  # noqa: S310
+    md5 = hashlib.md5(raw).hexdigest()  # noqa: S324 (integrity check, not security)
+    if md5 != FIGSHARE_AGGRESSIVE_MD5:
+        raise RuntimeError(f"aggressive_driver.zip: MD5 {md5} differs from the Figshare value")
     with zipfile.ZipFile(io.BytesIO(raw)) as zf:
-        zf.extractall(CACHE)
-    return sorted(glob.glob(str(CACHE / "**" / "*.parquet"), recursive=True))
+        zf.extractall(cache)
+    return sorted(glob.glob(str(cache / "**" / "*.parquet"), recursive=True))
 
 
 def _num(s: pd.Series) -> pd.Series:
