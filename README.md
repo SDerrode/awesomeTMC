@@ -394,7 +394,8 @@ per subsection:
 # from the repo root, inside the project venv (pip install -e ".[paper]")
 python -m prg.experiments.tac_simulations a          # Section V-A  (~10 s)
 python -m prg.experiments.tac_simulations b          # Section V-B  (~15 min)
-python -m prg.experiments.tac_simulations c          # Section V-C  (~1 min, downloads the data once)
+python -m prg.experiments.tac_simulations d          # Section V-C  (~2 min, cached USGS data in data/real/rivers)
+python -m prg.experiments.tac_simulations c          # vehicle data of an earlier version (downloads the data once)
 python -m prg.experiments.tac_simulations all        # a, b and c
 python -m prg.experiments.tac_simulations timing     # computing times per time step
 python -m prg.experiments.tac_simulations replot     # tables and figures from the stored results
@@ -407,7 +408,8 @@ The outputs are written to `results/tac_simulations/` (`--out` to change it):
 |---|---|---|---|
 | `a` | §V-A, Table I and the λ figure | `table_a.tex`, `fig_a_lambda.pdf`, `exp_a.json` | Error increase at n = 2 when a THGMSM is replaced by a CGOMSM1 or a CGOMSM2, regime known: closed forms, checked by Monte Carlo |
 | `b` | §V-B, Table II and the path figure | `table_b.tex`, `fig_b_homotopy.pdf`, `exp_b.json`, `exp_b_seq.npz` | Path of THGMSMs from a CGOMSM1 to a CGOMSM2: exact filters of both families against the exact filter by enumeration (N = 10) and an RBPF (N = 200); Monte Carlo half-widths, bootstrap of the crossing point, RBPF accuracy check, initial transient at the two ends of the path |
-| `c` | §V-C, Table III and the trace figure | `table_c.tex`, `fig_c_vehicle.pdf`, `exp_c.json` | Real driving data with a known steering input: THGMSM, CGOMSM1 and CGOMSM2 fitted per speed regime, filters run on held-out recordings |
+| `d` | §V-C, Table III and the flood figure | `table_d.tex`, `fig_d_rivers.pdf`, `exp_d.json` | Real river-discharge data (USGS, three reaches, 2014–2023) with the gauged tributary inflow as a measured input: THGMSM, CGOMSM1 (also with \|A\| ≤ 0.99) and CGOMSM2 fitted per rising/falling regime, filters run on the test years, static regression as a reference, paired block-bootstrap intervals, regime accuracy ([`tac_rivers.py`](prg/experiments/tac_rivers.py)) |
+| `c` | earlier version of §V-C | `table_c.tex`, `fig_c_vehicle.pdf`, `exp_c.json` | Real driving data with a known steering input (replaced by case `d` in the current version of the paper) |
 | `timing` | §V | `timing.json` | Time per step of the exact CGOMSM1/CGOMSM2 filters, of the RBPF and of the enumeration |
 
 **Notes**
@@ -421,7 +423,12 @@ The outputs are written to `results/tac_simulations/` (`--out` to change it):
   Gaussian law with the stationary moments, whatever the initial law of the model.
 - **Determinism.** All the random numbers are seeded; the seeds are recorded in
   `exp_b.json` (`cfg`). The PDF figures carry no creation date.
-- **Real data.** Case `c` uses the aggressive-driver recordings of the open dataset
+- **River data.** Case `d` uses the instantaneous discharge of 19 USGS gauges (U.S. Geological
+  Survey, National Water Information System, doi:10.5066/F7P55KJN, public domain), averaged
+  hourly (UTC) and cached in `data/real/rivers/` (6.6 MB, kept in the repository because the
+  provisional USGS records may be revised); without the cache, they are downloaded again from
+  waterservices.usgs.gov. `exp_d.json` records a SHA-256 fingerprint of the cache.
+- **Vehicle data.** Case `c` uses the aggressive-driver recordings of the open dataset
   Figshare `10.6084/m9.figshare.28078274.v1` (CC BY 4.0; 135 recordings at 100 Hz, of
   which the 134 longer than 5 s are used). The ~20 MB archive is downloaded once,
   checked against its published MD5, and cached under `data/real/vehicle/` (`--data`

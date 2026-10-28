@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.2.0] — 2026-10-28
+
+### Added
+- ``prg/experiments/tac_rivers.py``, case ``d`` of ``tac_simulations.py``: the new Section V-C of
+  the IEEE TAC paper, on real river-discharge data (USGS NWIS, Susquehanna, Delaware and Potomac
+  reaches, 2014–2023, 3 h steps). X = log discharge downstream, Y = log discharge upstream delayed
+  by the travel time, u = log of the gauged tributary inflow (measured exogenous input), regime =
+  rising / falling limb, hidden in the filters. THGMSM, CGOMSM1 (also under |A_k| <= 0.99) and
+  CGOMSM2 are fitted by maximum likelihood; exact filters, RBPF, single-regime Kalman filter and
+  static regression are compared on the test years (two splits), with paired moving-block bootstrap
+  intervals and the accuracy of the MAP regime.
+- ``data/real/rivers/``: hourly means of the 19 gauges used (6.6 MB), so that the study does not
+  depend on later revisions of the provisional USGS records.
+- ``tests/test_tac_rivers.py``: filters against brute-force enumeration and case ``c``, RBPF with
+  K = 1 against Kalman, fits, RDB parsing, frame of the cached data.
+
+### Changed
+- The vehicle study (case ``c``) is kept as the real-data study of an earlier version of the paper.
+
 ### Added
 - ``codemeta.json`` and ``AUTHORS.md``, for the deposit of the software on HAL via Software
   Heritage.
