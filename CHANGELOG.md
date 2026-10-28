@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- ``tac_simulations all`` now runs cases ``a``, ``b`` and ``d`` (the three subsections of Section V of
+  the current version of the paper); the vehicle case ``c`` is run only on request. README: the
+  vehicle data and the figures of the earlier draft are no longer described.
+
 ## [3.2.0] — 2026-10-28
 
 ### Added

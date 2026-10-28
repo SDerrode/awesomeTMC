@@ -1426,14 +1426,14 @@ def main():
                 f" long = {r['eps_star_long']:.3f} {bs['eps_star_long']['ci95']}; rbpf check"
                 f" {r['rbpf_check']}"
             )
-    if a.which in ("c", "all"):
+    if a.which == "c":  # vehicle data of an earlier version of the paper
         res = exp_c(a.out, a.data)
         for key, v in res["main"].items():
             for name, sc in v.items():
                 print(f"{key:8s} {name:12s} RMSE={sc['rmse']:.3f}  loglik={sc['loglik']:.3f}")
         for row in res["grid"]:
             print(row)
-    if a.which == "d":  # not in "all": it uses the cached USGS data of data/real/rivers
+    if a.which in ("d", "all"):  # uses the cached USGS data of data/real/rivers
         from prg.experiments.tac_rivers import exp_d
 
         exp_d(a.out)
