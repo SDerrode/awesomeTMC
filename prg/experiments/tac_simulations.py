@@ -49,9 +49,12 @@ Case ``c`` -- Section V-C (Table III -> table_c.tex, trace -> fig_c_vehicle.pdf)
 Case ``transient`` (also run by ``b``): at the two ends of the path, where the optimal filter is exact,
     excess of the other family over the first n_short steps and over the following ones (exp_b.json).
 Case ``timing``: computing time per time step of the filters of case b (timing.json).
+Case ``d`` (Section V-C of the current version, ``exp_d``): river discharge with a measured tributary
+    inflow as known input (USGS NWIS, three reaches); see ``prg/experiments/tac_rivers.py``. Case ``c``
+    (vehicle data) is the real-data study of an earlier version of the paper.
 Case ``replot``: regenerates the tables and figures from the stored JSON files, without simulating.
 
-Run:  python -m prg.experiments.tac_simulations [a|b|c|all|transient|timing|replot] [--out DIR]
+Run:  python -m prg.experiments.tac_simulations [a|b|c|d|all|transient|timing|replot] [--out DIR]
                                                 [--data DIR]
 """
 
@@ -1374,6 +1377,12 @@ def replot(out: Path):
         c = json.loads((out / "exp_c.json").read_text())
         _table_c(c, out / "table_c.tex")
         _plot_c(c, out / "fig_c_vehicle.pdf")
+    if (out / "exp_d.json").exists():
+        from prg.experiments.tac_rivers import _plot_d, _table_d
+
+        d = json.loads((out / "exp_d.json").read_text())
+        _table_d(d, out / "table_d.tex")
+        _plot_d(d, out / "fig_d_rivers.pdf")
 
 
 def main():
@@ -1382,7 +1391,7 @@ def main():
         "which",
         nargs="?",
         default="all",
-        choices=("a", "b", "c", "all", "timing", "replot", "transient"),
+        choices=("a", "b", "c", "d", "all", "timing", "replot", "transient"),
     )
     ap.add_argument("--out", type=Path, default=OUT)
     ap.add_argument("--seeds-short", type=int, default=300)
@@ -1424,6 +1433,10 @@ def main():
                 print(f"{key:8s} {name:12s} RMSE={sc['rmse']:.3f}  loglik={sc['loglik']:.3f}")
         for row in res["grid"]:
             print(row)
+    if a.which == "d":  # not in "all": it uses the cached USGS data of data/real/rivers
+        from prg.experiments.tac_rivers import exp_d
+
+        exp_d(a.out)
 
 
 if __name__ == "__main__":
