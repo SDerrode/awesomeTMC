@@ -19,6 +19,7 @@ from prg.utils.exactness import (
     exactness_domains,
     gpb2_domain_residual,
     imm_domain_residual,
+    residual_memory,
 )
 
 
@@ -41,6 +42,17 @@ def test_slaving_only_model_is_gpb2_exact_not_imm():
 def test_ab_model_all_three_exact_but_imm():
     d = exactness_domains(ab_model(0.4))
     assert d["gpb2"] and d["constant_gain"] and not d["imm"]
+
+
+def test_round_off_memory_is_on_the_gpb2_domain():
+    from prg.classes.GSSParams import GSSParams
+    from prg.models.model_gss_K2_q1_s1 import ModelGssK2Q1S1
+
+    p = GSSParams.from_model(ModelGssK2Q1S1())  # AB up to the rounding of its stored blocks
+    assert 0.0 < max(abs(residual_memory(p, j)).max() for j in range(p.K)) < 1e-12
+    assert gpb2_domain_residual(p) < 1e-12
+    d = exactness_domains(p)
+    assert d["gpb2"] and d["constant_gain"]
 
 
 def test_mixed_branch_leaves_gpb2_domain_unless_memoryless():
