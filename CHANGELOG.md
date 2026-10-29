@@ -7,7 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- ``prg.utils.exactness.cross_annihilation_residual`` (hence ``gpb2_domain_residual``,
+  ``exactness_domains`` and the GPB2 note of the GUI): the relative residual divided
+  ``‖C_k N_j‖`` by ``‖C_k‖ ‖N_j‖``, so a round-off residual memory N_j gave a residual of 1
+  for a scalar state, and AB models whose blocks were stored with rounding were reported
+  off the GPB2 domain (e.g. ``ModelGssK2Q1S1``). The term is now divided by
+  ``‖C_k‖ max(‖A_j‖, ‖M_j C_j‖)``. Regression test added.
+
 ### Changed
+- README: new section "Reproducing the exactness-domain paper" (Lehmann & Derrode,
+  *When Are the IMM and GPB2 Filters Exact?*), with the two experiment scripts and the
+  ``prg.utils.exactness`` API; citation of that paper in "Citing" and in ``CITATION.cff``
+  (``references``).
 - ``tac_simulations all`` now runs cases ``a``, ``b`` and ``d`` (the three subsections of Section V of
   the current version of the paper); the vehicle case ``c`` is run only on request. README: the
   vehicle data and the figures of the earlier draft are no longer described.

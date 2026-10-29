@@ -55,3 +55,13 @@ preferred-citation:
       family-names: Pieczynski
   year: 2026
   notes: "Preprint, accompanying this software."
+references:
+  - type: generic
+    title: "When Are the IMM and GPB2 Filters Exact? A Complete Characterization in Pairwise Markov Switching Models"
+    authors:
+      - given-names: Frédéric
+        family-names: Lehmann
+      - given-names: Stéphane
+        family-names: Derrode
+    year: 2026
+    notes: "In preparation. Its experiments are prg/experiments/cns_exactness.py and prg/experiments/make_cns_figures.py; its exactness domains are tested by prg/utils/exactness.py."
