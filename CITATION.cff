@@ -14,8 +14,8 @@ authors:
 repository-code: "https://github.com/SDerrode/awesomeTMC"
 identifiers:
   - type: doi
-    value: "10.5281/zenodo.23739738"
-    description: "Archived snapshot of this exact version (v3.2.0) on Zenodo."
+    value: "10.5281/zenodo.23816821"
+    description: "Archived snapshot of this exact version (v3.2.1) on Zenodo."
   - type: doi
     value: "10.5281/zenodo.23081190"
     description: "Concept DOI: always resolves to the latest archived version on Zenodo."
