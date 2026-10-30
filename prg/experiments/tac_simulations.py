@@ -328,31 +328,68 @@ def _table_a(rows, path):
     path.write_text("\n".join(lines) + "\n")
 
 
-def _plot_a(lam, curves, path):
+def _lambda_crossings(lam, d):
+    """lambda values where d = log(tau1 / tau2) changes sign (linear interpolation)."""
+    i = np.flatnonzero(np.sign(d[:-1]) * np.sign(d[1:]) < 0)
+    return lam[i] - d[i] * (lam[i + 1] - lam[i]) / (d[i + 1] - d[i])
+
+
+def _plot_a(lam, curves, path, lam_table=0.5):
+    """One panel per experiment: tau_1 and tau_2 against lambda, with their crossing points."""
     plt = _mpl()
-    fig, ax = plt.subplots(figsize=(3.4, 2.3))
-    styles = {2: "-", 7: "--"}
-    for k, cur in curves.items():
-        k = int(k)
-        for t, col, mk in (("tau1", "C0", "o"), ("tau2", "C3", "s")):
-            ax.plot(
-                lam,
-                [c[t] for c in cur],
-                styles[k],
-                color=col,
-                marker=mk,
-                ms=3.5,
-                markevery=(k % 2, 4),
-                mfc="white" if k == 7 else col,
-                lw=1.0,
-                label=rf"$\tau_{t[-1]}$ (exp. {k})",
+    lam = np.asarray(lam)
+    keys = sorted(curves, key=int)
+    fig, axes = plt.subplots(1, len(keys), figsize=(3.45, 1.95), sharey=True)
+    for ax, k in zip(np.atleast_1d(axes), keys):
+        t1 = np.array([c["tau1"] for c in curves[k]])
+        t2 = np.array([c["tau2"] for c in curves[k]])
+        ax.plot(
+            lam,
+            t1,
+            "-",
+            color="C0",
+            marker="o",
+            ms=3,
+            markevery=4,
+            lw=1.1,
+            label=r"$\tau_1$ (CGOMSM1)",
+        )
+        ax.plot(
+            lam,
+            t2,
+            "--",
+            color="C3",
+            marker="s",
+            ms=3,
+            markevery=(2, 4),
+            lw=1.1,
+            label=r"$\tau_2$ (CGOMSM2)",
+        )
+        ax.axvline(lam_table, color="0.5", ls=":", lw=0.8)
+        for x in _lambda_crossings(lam, np.log(t1 / t2)):
+            ax.axvline(x, color="k", lw=0.6, alpha=0.6)
+            ax.annotate(
+                rf"$\lambda \approx {x:.2f}$",
+                xy=(x, 0.04),
+                xycoords=("data", "axes fraction"),
+                xytext=(-3 if x > 0.5 else 3, 0),
+                textcoords="offset points",
+                fontsize=7,
+                va="bottom",
+                ha="right" if x > 0.5 else "left",
             )
-    ax.set_xlabel(r"$\lambda$")
-    ax.set_ylabel("relative error increase")
-    ax.set_yscale("log")
-    ax.grid(alpha=0.3, which="both")
-    ax.legend(ncol=2, frameon=False, handlelength=2.6, columnspacing=1.0)
-    fig.tight_layout()
+        ax.set_yscale("log")
+        ax.set_title(f"exp. {int(k)}", fontsize=8, pad=3)
+        ax.set_xlabel(r"$\lambda$")
+        ax.grid(alpha=0.25, which="major", axis="y")
+    allv = [c[t] for k in keys for c in curves[k] for t in ("tau1", "tau2")]
+    np.atleast_1d(axes)[0].set_ylim(min(allv) / 2.5, max(allv) * 2.5)  # room for the end markers
+    np.atleast_1d(axes)[0].set_ylabel("relative error increase")
+    handles, labels = np.atleast_1d(axes)[0].get_legend_handles_labels()
+    fig.legend(
+        handles, labels, loc="upper center", ncol=2, frameon=False, bbox_to_anchor=(0.55, 1.02)
+    )
+    fig.tight_layout(rect=(0, 0, 1, 0.9))
     _savefig(fig, path)
     plt.close(fig)
 
