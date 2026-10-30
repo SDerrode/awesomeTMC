@@ -10,9 +10,19 @@ Simulation and **fast exact jump-filtering** algorithms for the paper:
 The paper introduces an exact, **linear-time** optimal filter for Gaussian
 switching state-space models satisfying a closed-form structural constraint
 (the **AB constraint**; these models are called CGOMSM2 in the paper, and the
-models with C = 0 are called CGOMSM1). The command that regenerates the tables and
+models with C = 0 are called CGOMSM1; earlier releases said NGH-MSM and CGO-MSM, and
+the API keeps that spelling in `NGHMSMParams`, `validate_ngh_msm` and the filter mode
+`"ngh_kf"`). The command that regenerates the tables and
 figures of its Section V from this code is in
 [Reproducing Section V of the paper](#reproducing-section-v-of-the-paper) below.
+
+The library also backs a second paper, on the classical collapse filters:
+
+> *When Are the IMM and GPB2 Filters Exact? A Complete Characterization in Pairwise Markov Switching Models*  
+> Frédéric Lehmann & Stéphane Derrode (in preparation, 2026)
+
+It characterizes the models on which the order-1 IMM and GPB2 reproduce the exact
+filter; see [Reproducing the exactness-domain paper](#reproducing-the-exactness-domain-paper).
 
 This README documents the **jump-filtering** pipeline: define a model →
 simulate → filter exactly.
@@ -427,6 +437,46 @@ The outputs are written to `results/tac_simulations/` (`--out` to change it):
   provisional USGS records may be revised); without the cache, they are downloaded again from
   waterservices.usgs.gov. `exp_d.json` records a SHA-256 fingerprint of the cache.
 
+## Reproducing the exactness-domain paper
+
+The numbers and figures of *"When Are the IMM and GPB2 Filters Exact?"* (Lehmann & Derrode)
+come from two scripts. Both compare the filters with the exact filter by enumeration
+of the K<sup>N</sup> regime paths.
+
+```bash
+# from the repo root, inside the project venv
+python -m prg.experiments.cns_exactness      # experiments E1–E11, printed as the paper's tables
+python -m prg.experiments.make_cns_figures   # the two figures, written to docs/CNS-exactness/figures/
+```
+
+`cns_exactness.py` runs eleven experiments (N = 10 time steps, 100 seeds off the
+domains). They check each exactness domain at machine precision, the bias off each
+domain, the sharpness of the non-degeneracy assumption (G), and the (R, Y)-Markov class.
+The module docstring lists them; the blocks, switching probabilities and seeds of every
+model are printed with the results.
+
+The three exactness domains of the paper can be tested on any model:
+
+| Filter | Exact if and only if | Function |
+|---|---|---|
+| order-1 IMM | C<sub>r</sub> = 0 for every regime | `imm_domain_residual` |
+| GPB2 | C<sub>k</sub>(A<sub>j</sub> − M<sub>j</sub>C<sub>j</sub>) = 0 for every pair (j, k) | `gpb2_domain_residual`, `cross_annihilation_residual` |
+| constant gain | AB constraint | `prg.utils.ab_constraint.ab_residual_max` |
+
+```python
+from prg.utils.exactness import exactness_domains, assumption_g
+
+exactness_domains(params)
+# {'imm': False, 'gpb2': True, 'constant_gain': True, 'assumption_g': True}
+assumption_g(params)   # details of (G1) full support and (G2) observational separation
+```
+
+The residuals are relative, so a fitted or designed model can be placed on the map
+before a filter is chosen. When `assumption_g` is False, the domain flags are still the
+block conditions of the theorems, but a filter may then be exact off its domain. In the
+graphical interface, the status bar reports a violated Assumption (G) and, in GPB2 mode,
+the cross-annihilation residual when it is nonzero.
+
 ## Figures of an earlier draft
 
 The figures of an earlier draft of the paper (*"Exact Constant-Gain Filtering in Gaussian
@@ -490,6 +540,18 @@ the software:
 
 The concept DOI above always resolves to the latest version; each release also has
 its own DOI on Zenodo.
+
+If you use the exactness domains of the IMM and GPB2 filters (`prg/utils/exactness.py`,
+`prg/experiments/cns_exactness.py`), please also cite:
+
+```bibtex
+@misc{lehmann_derrode_imm_gpb2_2026,
+  author       = {Lehmann, Fr{\'e}d{\'e}ric and Derrode, St{\'e}phane},
+  title        = {{When Are the IMM and GPB2 Filters Exact? A Complete Characterization in Pairwise Markov Switching Models}},
+  year         = {2026},
+  note         = {In preparation},
+}
+```
 
 A `CITATION.cff` file is also provided at the repo root.
 

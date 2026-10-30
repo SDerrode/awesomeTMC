@@ -100,7 +100,7 @@ class BaseGSSModel(ABC):
         """
         Closed-form AB blocks ``A_k = Δ_k Σ_V_k⁻¹ C_k``, ``B_k = Δ_k Σ_V_k⁻¹ D_k``.
 
-        NGH-MSM presets declare only the *free* blocks (C, D, Δ, Σ_V) and call
+        CGOMSM2 presets declare only the *free* blocks (C, D, Δ, Σ_V) and call
         this in ``get_params()`` so that A, B are **derived** — guaranteeing the
         model satisfies the AB constraint by construction (Proposition 2,
         sufficiency), rather than relying on hand-entered A, B that may be

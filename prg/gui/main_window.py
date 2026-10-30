@@ -254,7 +254,7 @@ class GSSMainWindow(QMainWindow):
             "When enabled, the filter runs automatically after every single simulation.\n"
             "The filter uses the parameters captured at simulate time — editing the\n"
             "widgets afterwards does not affect the auto-filter run.\n"
-            "The Filter mode (GPB2 / NGH-MSM-KF) and Joseph form settings below apply as usual.\n"
+            "The Filter mode (GPB2 / CGOMSM2-KF) and Joseph form settings below apply as usual.\n"
             "No effect in Monte-Carlo mode."
         )
         auto_row.addWidget(self._auto_filter_check)
@@ -266,7 +266,7 @@ class GSSMainWindow(QMainWindow):
         mode_row.addWidget(QLabel("Filter mode:"))
         self._mode_combo = QComboBox()
         self._mode_combo.addItem("GPB2 (order 2) - any model", "gpb2")
-        self._mode_combo.addItem("NGH-MSM-KF (constant gain) - AB required", "ngh_kf")
+        self._mode_combo.addItem("CGOMSM2-KF (constant gain) - AB required", "ngh_kf")
         self._mode_combo.setToolTip(
             "GPB2 (order 2) — K² regime-pair Kalman updates per step, then a\n"
             "               collapse back to K. Exact iff every observation row\n"
@@ -274,7 +274,7 @@ class GSSMainWindow(QMainWindow):
             "               for all regime pairs (for a scalar state: C = 0 at every\n"
             "               regime, or A = M C at every regime); a good approximation\n"
             "               otherwise. Use it on any model that violates AB.\n"
-            "NGH-MSM-KF   — stationary pre-computed moments, no covariance\n"
+            "CGOMSM2-KF   — stationary pre-computed moments, no covariance\n"
             "               recursion, so its cost does not grow with the state\n"
             "               dimension. Exact only under the AB constraint\n"
             "               A = Δ Σ_V⁻¹ C, B = Δ Σ_V⁻¹ D; emits a warning when\n"
@@ -289,7 +289,7 @@ class GSSMainWindow(QMainWindow):
         joseph_row = QHBoxLayout()
         self._joseph_check = QCheckBox("Joseph form (covariance update)")
         self._joseph_check.setToolTip(
-            "Only used in NGH-MSM-KF mode. When checked, the\n"
+            "Only used in CGOMSM2-KF mode. When checked, the\n"
             "mode-conditional posterior covariance is computed via the Joseph\n"
             "form (numerically stable, symmetric and PSD by construction).\n"
             "Mathematically equivalent to the short form under stationarity.\n"
@@ -582,7 +582,7 @@ class GSSMainWindow(QMainWindow):
         self._right_tabs.setTabToolTip(
             1,
             "Exact conditional Gaussian density p(y_{n+1} | r_n=j, r_{n+1}=k, y_n).\n"
-            "Available after filtering in NGH-MSM-KF mode.",
+            "Available after filtering in CGOMSM2-KF mode.",
         )
 
         splitter.addWidget(self._right_tabs)
@@ -835,9 +835,9 @@ class GSSMainWindow(QMainWindow):
     def _ngh_kf_blockers(self, params) -> list[str]:
         """Reasons the selected mode would be inexact for ``params``.
 
-        Returns the list of NGH-MSM/CNS violations (from ``validate_ngh_msm``)
+        Returns the list of CGOMSM2/CNS violations (from ``validate_ngh_msm``)
         when the filter-mode combo is set to ``"ngh_kf"`` and ``params`` is
-        not a valid NGH-MSM; otherwise an empty list. Pure logic (no UI), so it
+        not a valid CGOMSM2; otherwise an empty list. Pure logic (no UI), so it
         is unit-testable independently of the warning dialog.
         """
         if params is None or self._mode_combo.currentData() != "ngh_kf":
@@ -893,7 +893,7 @@ class GSSMainWindow(QMainWindow):
         if not self._state.can_filter():
             return
 
-        # CNS guard: 'NGH-MSM-KF' is exact only on a valid NGH-MSM.
+        # CNS guard: 'CGOMSM2-KF' is exact only on a valid CGOMSM2.
         # If the user picked it for a model that violates AB / the structural
         # CNS, surface the issues (the filter would otherwise only emit a
         # RuntimeWarning the GUI swallows) and let them proceed or cancel.
@@ -904,8 +904,8 @@ class GSSMainWindow(QMainWindow):
             detail = "\n".join(f"  • {m}" for m in blockers)
             resp = QMessageBox.warning(
                 self,
-                "Model is not a valid NGH-MSM",
-                "The 'NGH-MSM-KF' filter is exact only for a model that "
+                "Model is not a valid CGOMSM2",
+                "The 'CGOMSM2-KF' filter is exact only for a model that "
                 "satisfies AB and the structural conditions. The captured model "
                 f"violates:\n\n{detail}\n\nThe filter will be biased. Switch to "
                 "'GPB2 (order 2)', or enforce the AB constraint on every regime.\n\n"
@@ -1897,7 +1897,7 @@ class GSSMainWindow(QMainWindow):
         seed = self._seed_edit.text().strip() or "random"
         auto = "auto-filter" if self._auto_filter_check.isChecked() else ""
         mode = self._mode_combo.currentData()
-        mode_short = "NGH-MSM-KF" if mode == "ngh_kf" else "IMM-general"
+        mode_short = "CGOMSM2-KF" if mode == "ngh_kf" else "IMM-general"
         parts = [
             f"K={self._K}·q={self._q}·s={self._s}",
             f"N={self._n_spin.value()}",
@@ -2345,7 +2345,7 @@ class GSSMainWindow(QMainWindow):
             noise_cov = GSSNoiseCovariance(K, q, s, Sigma_U_list, Delta_list, Sigma_V_list)
 
             # Σ_z0 = Σ_W makes the (R, Y) chain homogeneous from the *first*
-            # transition for NGH-MSMs (Prop. 3): the regime-conditional state law
+            # transition for CGOMSM2s (Prop. 3): the regime-conditional state law
             # p(x_n | r_n, y_n) is then the same at every n. The filter starts at
             # stationarity regardless, so this choice only affects simulated data.
             Sigma_z0_list = [sw.copy() for sw in Sigma_W_list]

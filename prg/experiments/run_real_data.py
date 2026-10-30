@@ -373,7 +373,7 @@ def emit_e1_tex(res, path):
 
 def emit_e2_tex(res, path):
     label = {
-        "ngh_kf_abfit": "NGH-MSM-KF (AB fit)",
+        "ngh_kf_abfit": "CGOMSM2-KF (AB fit)",
         "gpb2_olsfit": "GPB2 (OLS fit)",
         "gpb2_abfit": "GPB2 (AB fit)",
         "kalman_k1": "Kalman $K=1$",

@@ -72,7 +72,7 @@ def test_oracle_beats_single_kalman():
 
 def test_rank_deficient_model_is_valid_and_exact():
     """E7: with a rank-deficient C (s < q, full column rank impossible), the model
-    is still a valid NGH-MSM and ngh_kf still equals the exact Bayesian filter."""
+    is still a valid CGOMSM2 and ngh_kf still equals the exact Bayesian filter."""
     from prg.experiments.study import rank_deficient_model
     from prg.utils.ab_constraint import validate_ngh_msm
 

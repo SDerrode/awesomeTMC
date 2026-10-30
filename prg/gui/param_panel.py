@@ -22,7 +22,7 @@ on every edit of (C(k), D(k), Δ(k), Σ_V(k)). When unchecked, the previous
 (saved) values of A and B are restored and the blocks become editable again.
 
 The constraint is **checked by default** on every newly built tab, so a fresh
-model is a valid NGH-MSM out of the box (A, B derived, blocks greyed out).
+model is a valid CGOMSM2 out of the box (A, B derived, blocks greyed out).
 Uncheck it to edit A, B freely and explore general / model violating ABs.
 
 Stability indicators
@@ -158,7 +158,7 @@ class _StateTab(QWidget):
         self._ab_badge.setToolTip(
             "Per-regime (k,k) residual — a NECESSARY but not sufficient AB check.\n"
             "Full AB is over all K² regime pairs and is verified on the complete\n"
-            "model when you Filter (the 'NGH-MSM-KF' mode validates it)."
+            "model when you Filter (the 'CGOMSM2-KF' mode validates it)."
         )
 
         f_col = QVBoxLayout()
@@ -235,7 +235,7 @@ class _StateTab(QWidget):
         # Initialise the badges with the default matrix
         self._update_stability_badges()
 
-        # AB constraint ON by default: a fresh tab is a valid NGH-MSM (A, B are
+        # AB constraint ON by default: a fresh tab is a valid CGOMSM2 (A, B are
         # derived from C, D, Δ, Σ_V and the blocks are greyed out). Done last,
         # after the widgets and the toggled→_on_AB_toggled connection exist, so
         # the closed form is computed and the blocks are locked. No external
@@ -461,7 +461,7 @@ class _StateTab(QWidget):
 
         After loading external parameters, set the constraint *active* iff the
         loaded A, B already equal the closed form (Δ Σ_V⁻¹ C, Δ Σ_V⁻¹ D): a valid
-        NGH-MSM then stays locked, while a general (non-AB) model stays editable
+        CGOMSM2 then stays locked, while a general (non-AB) model stays editable
         with its A, B preserved. Unlike a normal toggle this never recomputes or
         restores blocks — it only sets the checkbox and the read-only state — so
         loaded data is never silently re-projected.

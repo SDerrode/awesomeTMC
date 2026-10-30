@@ -872,7 +872,7 @@ def exp_ab_gauge():
 
 
 def exp_c0_gauge():
-    """S1({C==0}) and S2, on the CGO-MSM gauge with state memory."""
+    """S1({C==0}) and S2, on the CGOMSM1 gauge with state memory."""
     p = cgo_memory_model()
     g_reg, g_m, g_v = [], [], []
     exact_by_seed = {}
@@ -954,7 +954,7 @@ def exp_rts(exact_ab, exact_c0, exact_A):
 
 
 def equal_dynamics_c0_model():
-    """S9 control: the CGO gauge with EQUAL state dynamics A_1 = A_2, which
+    """S9 control: the CGOMSM1 gauge with EQUAL state dynamics A_1 = A_2, which
     switches off the mode-dependent backward-Jacobian defect of the
     HBH-structure two-filter while keeping (G2) (SV contrast 0.20/0.60)."""
     return _params(
@@ -1011,7 +1011,7 @@ def exp_hbh(exact_c0, exact_A):
 
 
 def near_c0_model(eta):
-    """S6b gauge: the CGO gauge with the channel switched on -- C = eta at
+    """S6b gauge: the CGOMSM1 gauge with the channel switched on -- C = eta at
     both regimes, full state memory A = (0.7, 0.4) != MC: the dual approach
     direction, toward the autonomy branch."""
     return _params(

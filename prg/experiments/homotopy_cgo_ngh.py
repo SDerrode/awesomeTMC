@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""CGO -> NGH homotopy: which exact filter degrades less off its family?
+"""CGOMSM1 -> CGOMSM2 homotopy: which exact filter degrades less off its family?
 
 A one-parameter path of Gaussian pairwise switching models joins a genuine
-CGO-MSM (epsilon = 0: C = 0, state memory A_0) to a genuine NGH-MSM
+CGOMSM1 (epsilon = 0: C = 0, state memory A_0) to a genuine CGOMSM2
 (epsilon = 1: C = C_1, A = M C_1, B = M D), all other blocks (D, Sigma_W,
 hence M and Gamma) being shared:
 
@@ -12,15 +12,15 @@ Two further paths share the endpoints and separate the two effects at play:
 "c_first"  -- the channel opens on [0, 1/2] (C: 0 -> C_1, A = A_0, B = B_0 kept),
               then the state row slaves itself on [1/2, 1] (A -> M C_1, B -> M D);
 "ab_first" -- the state row slaves itself on [0, 1/2] with the channel still
-              closed (the model stays a CGO model with C = 0), then the channel
+              closed (the model stays a CGOMSM1 model with C = 0), then the channel
               opens on [1/2, 1].
 
 Data are simulated with the model at epsilon.  Two exact filters are run with
 FROZEN parameters, each on its own family's model:
 
-* the CGO exact filter -- the pairwise IMM fed the epsilon = 0 model (exact on
+* the CGOMSM1 exact filter -- the pairwise IMM fed the epsilon = 0 model (exact on
   that family by Theorem 1 of the exactness paper);
-* the NGH constant-gain filter -- fed the epsilon = 1 model.
+* the CGOMSM2 constant-gain filter -- fed the epsilon = 1 model.
 
 Both are therefore misspecified in A, B, C by an amount linear in their
 distance to their endpoint.  Two other ways of "filtering with a family" off
@@ -28,13 +28,13 @@ the family are run alongside:
 
 * block projection ("blk") -- each filter is fed the TRUE blocks of the model
   at epsilon wherever its family allows, and only the forbidden blocks are
-  replaced: the CGO filter gets A(eps), B(eps), D, Sigma_W with C := 0; the NGH
+  replaced: the CGOMSM1 filter gets A(eps), B(eps), D, Sigma_W with C := 0; the CGOMSM2
   filter gets C(eps), D, Sigma_W with A := M C(eps), B := M D.  Each filter is
   then wrong only in what its family cannot represent.
 * KL projection ("kl") -- the member of each family closest to the true model
   in the Kullback-Leibler sense: the transition kernel N(F z + b, Sigma_W) of
   arrival regime k is approximated by N(F' z + b, Sigma_W) with F' in the
-  family's linear subspace (C' = 0 for CGO; A' = M C', B' = M D' for NGH),
+  family's linear subspace (C' = 0 for CGOMSM1; A' = M C', B' = M D' for CGOMSM2),
   minimizing E[(F - F') z]^T Sigma_W^-1 [(F - F') z] under the stationary law
   of the true model (departure regimes weighted by pi_j p_jk).  This is the
   weighted least-squares regression that Petetin & Desbouvries' criterion
@@ -84,9 +84,9 @@ SV = [0.20, 0.60]  # observation noise (regime identifiable)
 M = [0.6, -0.5]  # slaved gain Delta / Sigma_V
 D = [0.50, 0.50]
 GAM = [0.25, 0.30]  # residual state noise
-A0 = [0.7, 0.4]  # CGO endpoint: state memory
+A0 = [0.7, 0.4]  # CGOMSM1 endpoint: state memory
 B0 = [0.10, 0.10]
-C1 = [0.5, 0.5]  # NGH endpoint: active channel
+C1 = [0.5, 0.5]  # CGOMSM2 endpoint: active channel
 P_SWITCH = 0.10
 
 
@@ -220,8 +220,8 @@ def run_eps(eps: float, p0: GSSParams, p1: GSSParams, n_seeds: int, kind: str = 
         x = xs[:, 0]
         ex_e, var_x, _ = exact_mixture_filter(p, ys)
         var_e += float(np.sum(np.asarray(var_x).reshape(len(x), -1)[:, 0]))
-        ex_c, _, _ = imm_filter(p0, ys)[:3]  # CGO exact filter, frozen at eps=0
-        ex_n, _, _ = _run(p1, ys, "ngh_kf")  # NGH constant gain, frozen at eps=1
+        ex_c, _, _ = imm_filter(p0, ys)[:3]  # CGOMSM1 exact filter, frozen at eps=0
+        ex_n, _, _ = _run(p1, ys, "ngh_kf")  # CGOMSM2 constant gain, frozen at eps=1
         ex_g, _, _ = gpb2_filter(p, ys)[:3]  # GPB2, true parameters
         ex_i, _, _ = imm_filter(p, ys)[:3]  # pairwise IMM, true parameters (approximate off C=0)
         est = {
@@ -319,8 +319,8 @@ def plot(results: Path, figdir: Path) -> None:
     figdir.mkdir(parents=True, exist_ok=True)
     col = {"cgo": "#1f5f8b", "ngh": "#b8451f", "gpb2": "#5f7d3a", "imm": "#8a6d1f"}
     lab = {
-        "cgo": r"CGO exact filter, frozen at $\varepsilon=0$",
-        "ngh": r"NGH constant-gain filter, frozen at $\varepsilon=1$",
+        "cgo": r"CGOMSM1 exact filter, frozen at $\varepsilon=0$",
+        "ngh": r"CGOMSM2 constant-gain filter, frozen at $\varepsilon=1$",
         "gpb2": "GPB2, true parameters (reference)",
         "imm": "IMM, true parameters",
     }
@@ -342,7 +342,7 @@ def plot(results: Path, figdir: Path) -> None:
             va="center",
             fontsize=8,
         )
-    a1.set_xlabel(r"$\varepsilon$  (0 = CGO model, 1 = NGH model)")
+    a1.set_xlabel(r"$\varepsilon$  (0 = CGOMSM1 model, 1 = CGOMSM2 model)")
     a1.set_ylabel(r"relative excess MSE  $\mathbb{E}(f-e)^2\,/\,\mathrm{Var}[X\mid y]$")
     a1.set_title("(a) excess over the Bayes filter", fontsize=10)
     a1.grid(alpha=0.3)
@@ -394,7 +394,7 @@ def plot_compare(results_list, figdir: Path) -> None:
         rows = res["rows"]
         kind = res.get("path", "straight")
         eps = [r["eps"] for r in rows]
-        for fam, name in (("cgo", "CGO"), ("ngh", "NGH")):
+        for fam, name in (("cgo", "CGOMSM1"), ("ngh", "CGOMSM2")):
             for suf, st in style.items():
                 key = fam + suf
                 if key not in rows[0]["excess"]:

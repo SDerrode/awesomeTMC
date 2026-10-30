@@ -9,7 +9,7 @@ slaving read-out for the yaw rate on held-out data:
 
     yaw_n  ≈  M_r · a_lat_n  +  N_r · steering_n          (regime r = observed speed band)
 
-i.e. the exact NGH-MSM read-out X_n = M_{r_n} y_n + N_{r_n} u_{n-1} with
+i.e. the exact CGOMSM2 read-out X_n = M_{r_n} y_n + N_{r_n} u_{n-1} with
 X = yaw rate, Y = lateral acceleration, u = steering. Four estimators are compared
 on held-out files: with/without the consigne, with/without the speed regime.
 

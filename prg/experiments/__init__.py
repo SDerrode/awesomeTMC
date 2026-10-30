@@ -19,7 +19,7 @@ metrics          — scalar performance metrics:
                      compute_ljung_box Ljung-Box p-value (innovation whiteness)
                      compute_jarque_bera Jarque-Bera p-value (normality)
                      compute_bic       BIC for AB-constrained GSS models
-run_simulations  — §6.2: Monte-Carlo filter benchmark (NGH-MSM-KF vs GPB2):
+run_simulations  — §6.2: Monte-Carlo filter benchmark (CGOMSM2-KF vs GPB2):
                      run_one_trial     single (model, N, seed, mode) trial
                      run_all           full study → data/experiments/mc_results.csv
                    CLI: python -m prg.experiments.run_simulations [--help]

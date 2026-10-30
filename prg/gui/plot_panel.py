@@ -704,7 +704,7 @@ class PredYPanel(QWidget):
     # Sous-onglet 0 : Trajectoire
     # ------------------------------------------------------------------
 
-    _COL_SIG1 = "#1f77b4"  # blue   — signal 1 (NGH-MSM-KF)
+    _COL_SIG1 = "#1f77b4"  # blue   — signal 1 (CGOMSM2-KF)
     _COL_SIG2 = "#ff7f0e"  # orange — signal 2 (exact Markov transition, éq. (f)/(h))
 
     def _refresh_traj(self) -> None:
@@ -791,7 +791,7 @@ class PredYPanel(QWidget):
 
             # ── 2-column legend ──────────────────────────────────────────
             left_h = [line1]
-            left_l = [rf"$\mu_1/y^{i}_n$ (NGH-MSM-KF)"]
+            left_l = [rf"$\mu_1/y^{i}_n$ (CGOMSM2-KF)"]
             right_h = [env1]
             right_l = [rf"$\pm 2\sigma_1={sig1_i:.3g}$"]
             if has_sig2:
@@ -823,7 +823,7 @@ class PredYPanel(QWidget):
             0.5,
             0.5,
             "Run the filter in\n"
-            "NGH-MSM-KF mode\n"
+            "CGOMSM2-KF mode\n"
             "to display the trajectory\n"
             r"$\mathbb{E}[y_{n+1} \mid r_n,\; r_{n+1},\; y_n]$",
             transform=ax.transAxes,
@@ -910,7 +910,7 @@ class PredYPanel(QWidget):
             )
 
             left_h = [line1]
-            left_l = [r"$\mu_1$ (NGH-MSM-KF)"]
+            left_l = [r"$\mu_1$ (CGOMSM2-KF)"]
             right_h = [env1]
             right_l = [rf"$\pm 2\sigma_1={sig1_i:.3g}$"]
             if has_sig2:
@@ -942,7 +942,7 @@ class PredYPanel(QWidget):
             0.5,
             0.5,
             "Run the filter in\n"
-            "NGH-MSM-KF mode\n"
+            "CGOMSM2-KF mode\n"
             "to display the trajectory\n"
             r"$\mathbb{E}[y_{n+1} \mid r_n,\; r_{n+1},\; y_n]$",
             transform=ax.transAxes,
@@ -1042,7 +1042,7 @@ class PredYPanel(QWidget):
 
         # ── Légende 2 colonnes (remplissage colonne par colonne) ────────────
         left_h = [line1]
-        left_l = [rf"$p_1$ NGH-MSM-KF   $\mu_1={m1:.4g}$"]
+        left_l = [rf"$p_1$ CGOMSM2-KF   $\mu_1={m1:.4g}$"]
         right_h = [env1]
         right_l = [rf"$\pm 2\sigma_1={sig1:.4g}$"]
         if has2:
@@ -1307,7 +1307,7 @@ class PredYPanel(QWidget):
             0.5,
             0.5,
             "Run the filter in\n"
-            "NGH-MSM-KF mode\n"
+            "CGOMSM2-KF mode\n"
             "to display\n"
             r"$p(y_{n+1} \mid r_n,\; r_{n+1},\; y_n)$",
             transform=ax.transAxes,

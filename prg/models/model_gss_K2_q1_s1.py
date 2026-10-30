@@ -56,7 +56,7 @@ class ModelGssK2Q1S1(BaseGSSModel):
           [0, 1]]),
      np.array([[1, 0],
           [0, 1]])]
-    # Drift bias b(k) = 0: the reference NGH-MSM is zero-mean (paper convention).
+    # Drift bias b(k) = 0: the reference CGOMSM2 is zero-mean (paper convention).
     b_list: list[np.ndarray] = [np.zeros((2, 1)), np.zeros((2, 1))]
 
     # ------------------------------------------------------------------

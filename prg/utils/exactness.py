@@ -61,20 +61,30 @@ def cross_annihilation_residual(
 
     Returns ``(max_resid, (j, k))``. ``max_resid = 0`` ⇔ the model lies in the
     cross-annihilation family, i.e. GPB2 is exact. With ``relative=True`` each
-    term is divided by ``‖C_k‖_F ‖N_j‖_F`` (pairs with a zero factor contribute
+    term is divided by ``‖C_k‖_F max(‖A_j‖_F, ‖M_j C_j‖_F)``, the scale of the
+    two terms whose difference is ``N_j`` (pairs with a zero factor contribute
     0, they are trivially annihilated).
     """
     K = params.K
-    C = [params.f_matrix.C(k) for k in range(K)]
+    fm = params.f_matrix
+    C = [fm.C(k) for k in range(K)]
     N = [residual_memory(params, j) for j in range(K)]
+    # Scale of N_j = A_j - M_j C_j, not ||N_j|| itself: a round-off N_j would
+    # otherwise give a relative residual of 1 for a scalar state.
+    scale_N = [
+        max(
+            float(np.linalg.norm(fm.A(j), "fro")),
+            float(np.linalg.norm(params.noise_cov.M(j) @ C[j], "fro")),
+        )
+        for j in range(K)
+    ]
     worst, arg = 0.0, (0, 0)
     for j in range(K):
-        nN = float(np.linalg.norm(N[j], "fro"))
         for k in range(K):
             nC = float(np.linalg.norm(C[k], "fro"))
             r = float(np.linalg.norm(C[k] @ N[j], "fro"))
             if relative:
-                r = 0.0 if nC * nN == 0.0 else r / (nC * nN)
+                r = 0.0 if nC * scale_N[j] == 0.0 else r / (nC * scale_N[j])
             if r > worst:
                 worst, arg = r, (j, k)
     return worst, arg
