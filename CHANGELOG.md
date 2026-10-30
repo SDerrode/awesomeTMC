@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.2.1] — 2026-10-30
+
 ### Fixed
 - ``prg.utils.exactness.cross_annihilation_residual`` (hence ``gpb2_domain_residual``,
   ``exactness_domains`` and the GPB2 note of the GUI): the relative residual divided
@@ -29,6 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ``tac_simulations all`` now runs cases ``a``, ``b`` and ``d`` (the three subsections of Section V of
   the current version of the paper); the vehicle case ``c`` is run only on request. README: the
   vehicle data and the figures of the earlier draft are no longer described.
+- Fig. 4 of the TAC paper (``fig_a_lambda.pdf``, case ``a``): one panel per experiment, with the
+  crossing value of lambda (solid line, annotated) and lambda = 0.5 of Table I (dotted line);
+  the plotted data are unchanged.
 
 ## [3.2.0] — 2026-10-28
 
