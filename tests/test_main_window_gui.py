@@ -154,7 +154,7 @@ class TestMainWindow:
         assert issues and any("AB" in m for m in issues)
 
     def test_exactness_notes_report_assumption_g_and_gpb2_domain(self, qtbot):
-        """Notes flag (G2) failures and off-domain GPB2 use; silent on a CGO model."""
+        """Notes flag (G2) failures and off-domain GPB2 use; silent on a CGOMSM1 model."""
         from prg.experiments.cns_exactness import (
             cgo_memory_model,
             g2_degenerate_model,
@@ -165,7 +165,7 @@ class TestMainWindow:
         qtbot.addWidget(win)
         win._mode_combo.setCurrentIndex(win._mode_combo.findData("gpb2"))
         assert win._exactness_notes(None) == []
-        # genuine CGO-MSM: (G) holds, GPB2 exact -> nothing to say
+        # genuine CGOMSM1: (G) holds, GPB2 exact -> nothing to say
         assert win._exactness_notes(cgo_memory_model()) == []
         # E8 family: (G2) fails
         notes = win._exactness_notes(g2_degenerate_model(0.5, distinct_rows=False))

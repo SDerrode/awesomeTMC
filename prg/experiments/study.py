@@ -18,7 +18,7 @@ E5  Closed form      Γ_k constant in n (no Riccati); X slaved to Y
 E6  Robustness       bias of ngh_kf off the AB manifold vs the general IMM
 E7  Rank-deficient C C with s<q (rank-deficient observation coupling)
 E8  C influence      role of C as the regime-identification channel
-E9  C mismatch       filtering C≠0 data with a C=0 (CGOMSM) filter
+E9  C mismatch       filtering C≠0 data with a C=0 (CGOMSM1) filter
 """
 
 from __future__ import annotations
@@ -98,7 +98,7 @@ def contrasted_model(p_switch: float = 0.04, m: float = 0.8) -> GSSParams:
     so a regime-blind filter that averages the coupling estimates X≈0. The coupling
     magnitude m is the 'regime contrast' knob swept in E3'.
 
-    Built from the free blocks (NGH-MSM valid by construction); stationary init.
+    Built from the free blocks (CGOMSM2 valid by construction); stationary init.
     """
     from prg.classes.FMatrix import FMatrix
     from prg.classes.NoiseCovariance import GSSNoiseCovariance
@@ -140,7 +140,7 @@ def c_influence_model(C: float, p_switch: float = 0.02) -> GSSParams:
     flips sign with the regime (the regime matters for the state) while D, Sigma_V,
     Sigma_U are matched. At C=0 the observation is conditionally autonomous
     (Y_{n+1}=D Y_n+V, identical across regimes): the regime is hidden and the model
-    is exactly a CGOMSM (the old condition (H4), C=0). For C!=0 the observation
+    is exactly a CGOMSM1 (the old condition (H4), C=0). For C!=0 the observation
     depends on the state, which reveals the regime. AB keeps it fast-exact for every
     C; stationary init.
     """
@@ -178,10 +178,10 @@ def c_influence_model(C: float, p_switch: float = 0.02) -> GSSParams:
 
 
 def c_mismatch_model(C: float, p_switch: float = 0.02) -> GSSParams:
-    """E9 model: K=2, q=s=1 NGH-MSM whose regimes differ in observation volatility
+    """E9 model: K=2, q=s=1 CGOMSM2 whose regimes differ in observation volatility
     (Sigma_V quiet vs volatile) -- so the regime is identifiable even at C=0 -- and
     in the sign of the slaved gain M_r=Delta_r Sigma_V^-1. The observation coupling
-    C is the swept parameter. Used to filter C!=0 data with an 'old' C=0 (CGOMSM)
+    C is the swept parameter. Used to filter C!=0 data with an 'old' C=0 (CGOMSM1)
     model and quantify the cost of ignoring the X->Y coupling. AB-constrained;
     stationary init."""
     from prg.classes.FMatrix import FMatrix
@@ -218,11 +218,11 @@ def c_mismatch_model(C: float, p_switch: float = 0.02) -> GSSParams:
 
 
 def rank_deficient_model(p_switch: float = 0.05) -> GSSParams:
-    """A K=2, q=2, s=1 NGH-MSM with a *rank-deficient* observation map: each C_r is
+    """A K=2, q=2, s=1 CGOMSM2 with a *rank-deficient* observation map: each C_r is
     a 1×2 matrix of rank 1 < q, so the two-dimensional hidden state is observed
     through a single scalar at every step. Full column rank of C is NOT required
     for the AB constraint to be the NSC (reformulated Prop. 2): the model is a
-    valid NGH-MSM and the fast exact filter stays exact on it (E7).
+    valid CGOMSM2 and the fast exact filter stays exact on it (E7).
 
     Built from the free blocks (A,B derived via the AB constraint); stationary init.
     """
@@ -312,8 +312,8 @@ def exp_exactness(outdir: Path) -> dict:
         ax.semilogy(Ns_m, errsP, mark + "--", color=ax.lines[-1].get_color(), alpha=0.6, ms=4)
     ax.axhline(1e-10, color="grey", ls=":", lw=1)
     ax.set_xlabel("sequence length $N$")
-    ax.set_ylabel("max abs. difference  (NGH-MSM-KF vs exact)")
-    ax.set_title("E1 — NGH-MSM-KF equals the exact Bayesian filter")
+    ax.set_ylabel("max abs. difference  (CGOMSM2-KF vs exact)")
+    ax.set_title("E1 — CGOMSM2-KF equals the exact Bayesian filter")
     ax.legend(fontsize=7, ncol=1)
     fig.savefig(outdir / "figures" / "e1_exactness.pdf")
     plt.close(fig)
@@ -452,7 +452,7 @@ def exp_speed(outdir: Path) -> dict:
         t_ex.append(time.perf_counter() - t0)
 
     style = {
-        "ngh_kf": ("o-", _C["ngh_kf"], "NGH-MSM-KF (proposed)"),
+        "ngh_kf": ("o-", _C["ngh_kf"], "CGOMSM2-KF (proposed)"),
         "gpb2": ("s-", _C["imm"], "GPB2 (order 2, exact here)"),
         "imm_order1": ("D-", _C["exact"], "pairwise IMM (order 1, approx.)"),
         "single_kalman": ("^-", _C["kal"], "pairwise Kalman (no switching)"),
@@ -521,7 +521,7 @@ def exp_value(outdir: Path) -> dict:
     labels = [
         "zero\npredictor",
         "pairwise\nKalman",
-        "NGH-MSM-KF\n(proposed)",
+        "CGOMSM2-KF\n(proposed)",
         "oracle\n(regimes known)",
     ]
     cols = ["#bbbbbb", _C["kal"], _C["ngh_kf"], _C["oracle"]]
@@ -616,7 +616,7 @@ def exp_value_sweep(outdir: Path) -> dict:
         fmt="o-",
         color=_C["ngh_kf"],
         capsize=2,
-        label="NGH-MSM-KF (proposed)",
+        label="CGOMSM2-KF (proposed)",
     )
     ax1.errorbar(
         ms,
@@ -667,7 +667,7 @@ def exp_multivariate(outdir: Path) -> dict:
             ExH[:, i] + 2 * sd,
             color=_C["ngh_kf"],
             alpha=0.2,
-            label="NGH-MSM-KF $\\pm 2\\sigma$",
+            label="CGOMSM2-KF $\\pm 2\\sigma$",
         )
         ax.plot(t, xs[:, i], color="k", lw=1, label="true $X$")
         ax.plot(t, ExH[:, i], color=_C["ngh_kf"], lw=1.2, label="$E[X|y]$")
@@ -806,11 +806,11 @@ def exp_robustness(outdir: Path) -> dict:
         rmse_imm.append(float(np.mean(ei)))
 
     fig, ax = plt.subplots(figsize=(5.2, 3.4))
-    ax.plot(used, rmse_ab, "o-", color=_C["ngh_kf"], label="NGH-MSM-KF (assumes AB)")
+    ax.plot(used, rmse_ab, "o-", color=_C["ngh_kf"], label="CGOMSM2-KF (assumes AB)")
     ax.plot(used, rmse_imm, "s-", color=_C["imm"], label="pairwise IMM (order 1)")
     ax.set_xlabel("AB perturbation $\\varepsilon$ (added to $A$)")
     ax.set_ylabel("RMSE vs exact filter")
-    ax.set_title("E6 — NGH-MSM-KF degrades gracefully off the AB family")
+    ax.set_title("E6 — CGOMSM2-KF degrades gracefully off the AB family")
     ax.legend(fontsize=8)
     fig.savefig(outdir / "figures" / "e6_robustness.pdf")
     plt.close(fig)
@@ -822,7 +822,7 @@ def exp_robustness(outdir: Path) -> dict:
 # ---------------------------------------------------------------------------
 def exp_rank_deficient(outdir: Path) -> dict:
     """E7 — the fast exact filter does not need C to have full column rank. On a
-    K=2, q=2, s=1 NGH-MSM (each C_r is 1×2, rank 1 < q), ngh_kf still equals the
+    K=2, q=2, s=1 CGOMSM2 (each C_r is 1×2, rank 1 < q), ngh_kf still equals the
     brute-force K^N Bayesian filter, and recovers *both* hidden components from the
     single observation. This is the experimental face of dropping the rank
     hypothesis (reformulated Prop. 2)."""
@@ -855,7 +855,7 @@ def exp_rank_deficient(outdir: Path) -> dict:
     axA.semilogy(Ns, errsP, "s--", color=_C["imm"], ms=4, label="$|\\Delta p(r|y)|$")
     axA.axhline(1e-10, color="grey", ls=":", lw=1)
     axA.set_xlabel("sequence length $N$")
-    axA.set_ylabel("NGH-MSM-KF vs exact")
+    axA.set_ylabel("CGOMSM2-KF vs exact")
     axA.set_title(
         f"E7a — exact despite rank-deficient $C$ "
         f"($\\mathrm{{rank}}\\,C_r={rank_C}$, $q={params.q}>s={params.s}$)"
@@ -870,7 +870,7 @@ def exp_rank_deficient(outdir: Path) -> dict:
             ExH[:, i] + 2 * sd,
             color=_C["ngh_kf"],
             alpha=0.2,
-            label="NGH-MSM-KF $\\pm 2\\sigma$",
+            label="CGOMSM2-KF $\\pm 2\\sigma$",
         )
         ax.plot(t, xs[:, i], "k", lw=1, label="true $X$")
         ax.plot(t, ExH[:, i], color=_C["ngh_kf"], lw=1.2, label="$E[X|y]$")
@@ -896,10 +896,10 @@ def exp_rank_deficient(outdir: Path) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# E8 — Influence of C : from CGOMSM (C=0) to NGH-MSM (C != 0)
+# E8 — Influence of C : from CGOMSM1 (C=0) to CGOMSM2 (C != 0)
 # ---------------------------------------------------------------------------
 def exp_c_influence(outdir: Path) -> dict:
-    """E8 — sweep the observation coupling C. At C=0 the model is a CGOMSM (the old
+    """E8 — sweep the observation coupling C. At C=0 the model is a CGOMSM1 (the old
     condition (H4)): the observation is conditionally autonomous and the regime --
     here carrying the sign of the slaved state -- is hidden, so the exact filter can
     only average the two opposite couplings (state estimate ~ 0). As C grows the
@@ -941,14 +941,14 @@ def exp_c_influence(outdir: Path) -> dict:
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8.4, 3.4))
     ax1.plot(
         Cs, acc, "o-", color=_C["ngh_kf"], ms=4
-    )  # NGH-MSM-KF regime accuracy (its usual colour)
+    )  # CGOMSM2-KF regime accuracy (its usual colour)
     ax1.axhline(0.5, color="black", ls=":", lw=1)
     ax1.text(Cs[-1], 0.508, "chance (0.5)", fontsize=7, color="black", ha="right", va="bottom")
     ax1.set_xlabel("observation coupling $C$")
     ax1.set_ylabel("regime accuracy")
     ax1.set_title("$C$ opens the regime channel")
     ax1.annotate(
-        "CGO-MSM ($C{=}0$)",
+        "CGOMSM1 ($C{=}0$)",
         xy=(0.0, acc[0]),
         xytext=(0.16, 0.585),
         fontsize=7,
@@ -988,7 +988,7 @@ def exp_c_influence(outdir: Path) -> dict:
         color=_C["ngh_kf"],
         ms=5,
         capsize=2,
-        label="NGH-MSM-KF (proposed)",
+        label="CGOMSM2-KF (proposed)",
     )
     ax2.errorbar(
         Cs,
@@ -1023,13 +1023,13 @@ def exp_c_influence(outdir: Path) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# E9 — Filtering C != 0 data with the old C = 0 (CGOMSM) filter
+# E9 — Filtering C != 0 data with the old C = 0 (CGOMSM1) filter
 # ---------------------------------------------------------------------------
 def exp_c_mismatch(outdir: Path) -> dict:
-    """E9 — what the old family costs. We generate data from a true NGH-MSM with
+    """E9 — what the old family costs. We generate data from a true CGOMSM2 with
     C != 0 (the observation measures the state) and filter it two ways: with the
     correct filter (true C), and with the 'old' filter that assumes C = 0, i.e. the
-    exact filter of the CGOMSM obtained by zeroing C (same regimes, volatilities
+    exact filter of the CGOMSM1 obtained by zeroing C (same regimes, volatilities
     and slaved gains, but an autonomous observation). The regimes also differ in
     observation volatility, so the C = 0 filter is not blind -- it still tracks the
     regime from the volatility -- which makes the comparison non-trivial: the gap is
@@ -1039,7 +1039,7 @@ def exp_c_mismatch(outdir: Path) -> dict:
     N, seeds = 500, list(range(40))
     rmse = {"correct": [], "c0_old": [], "imm": [], "oracle": []}
     rstd = {"correct": [], "c0_old": [], "imm": [], "oracle": []}
-    old = c_mismatch_model(0.0)  # the old CGOMSM model (C = 0)
+    old = c_mismatch_model(0.0)  # the old CGOMSM1 model (C = 0)
     for C in Cs:
         true = c_mismatch_model(C)
         ec, eold, ei, eor = [], [], [], []
@@ -1066,7 +1066,7 @@ def exp_c_mismatch(outdir: Path) -> dict:
         fmt="s-",
         color="#d62728",
         capsize=2,
-        label="CGO-MSM filter",
+        label="CGOMSM1 filter",
     )
     # IMM drawn first (underneath) with a larger hollow marker and wider caps, so the
     # correct filter -- plotted on top -- stays visible while the IMM ring and its
@@ -1090,7 +1090,7 @@ def exp_c_mismatch(outdir: Path) -> dict:
         color=_C["ngh_kf"],
         ms=5,
         capsize=2,
-        label="NGH-MSM-KF",
+        label="CGOMSM2-KF",
     )
     ax1.errorbar(
         Cs,
@@ -1103,7 +1103,7 @@ def exp_c_mismatch(outdir: Path) -> dict:
     )
     ax1.set_xlabel("true observation coupling $C$")
     ax1.set_ylabel("state RMSE")
-    ax1.set_title("CGO-MSM filter on $C{\\neq}0$ data")
+    ax1.set_title("CGOMSM1 filter on $C{\\neq}0$ data")
     ax1.legend(fontsize=7)
     ax2.plot(Cs, penalty, "o-", color="#d62728")
     ax2.set_xlabel("true observation coupling $C$")
@@ -1122,7 +1122,7 @@ def exp_c_mismatch(outdir: Path) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# E11 — Which approximate switching filter is EXACT on the NGH-MSM:
+# E11 — Which approximate switching filter is EXACT on the CGOMSM2:
 #       GPB2 (order-2 collapse) vs the order-1 Blom-Bar-Shalom IMM, both on the couple Z
 # ---------------------------------------------------------------------------
 def exp_imm_exactness(outdir: Path) -> dict:
@@ -1178,7 +1178,7 @@ def exp_imm_exactness(outdir: Path) -> dict:
     )
     a1.semilogy(Cs, clip(dev["gpb2"]["ex"]), "s-", color=gpb2col, ms=5, label="GPB2 (order 2)")
     a1.semilogy(
-        Cs, clip(dev["ngh_kf"]["ex"]), "o-", color=_C["ngh_kf"], ms=4, label="NGH-MSM-KF (proposed)"
+        Cs, clip(dev["ngh_kf"]["ex"]), "o-", color=_C["ngh_kf"], ms=4, label="CGOMSM2-KF (proposed)"
     )
     a1.set_xlabel("observation coupling $C$")
     a1.set_ylabel(r"max$_n\,|\widehat X_n-\widehat X_n^{\mathrm{exact}}|$")
@@ -1250,19 +1250,19 @@ def _quasi_ab_model(C: float, eps: float, p_switch: float = 0.02) -> GSSParams:
 
 
 def exp_ab_robustness(outdir: Path) -> dict:
-    """E12 -- robustness to AB violation. The exact constant-gain filter (NGH-MSM-KF)
+    """E12 -- robustness to AB violation. The exact constant-gain filter (CGOMSM2-KF)
     is exact only under the AB constraint. AB *implies* that the marginal pair (R,Y) is
     Markov but is not equivalent to it -- at C=0 the pair is Markov for any A_r, off-AB
     included -- so Markovianity alone does not buy the constant gain.
     We push the model off AB by eps (residual |A_r - M_r C_r| = eps) and score three
-    filters against the exact K^N filter of the PERTURBED model: NGH-MSM-KF (assumes
+    filters against the exact K^N filter of the PERTURBED model: CGOMSM2-KF (assumes
     AB), GPB2 (order 2, correct model, depth-2 mode collapse), and the order-1 IMM.
 
-    Finding (adversarially verified): NGH-MSM-KF is machine-exact on AB but degrades
+    Finding (adversarially verified): CGOMSM2-KF is machine-exact on AB but degrades
     ~linearly in eps (its constant-gain collapse is misspecified off-AB); GPB2 is the most
     robust by 1.5-2.5 decades (it uses the correct perturbed dynamics and only
     approximates by depth-2 collapse); the order-1 IMM has a nonzero on-AB floor but
-    grows slowly. Off-AB the ranking flips to GPB2 < IMM < NGH-MSM-KF -- the AB-exact
+    grows slowly. Off-AB the ranking flips to GPB2 < IMM < CGOMSM2-KF -- the AB-exact
     filter becomes the least accurate. Seed-averaged max per-step state deviation."""
     import warnings
 
@@ -1294,7 +1294,7 @@ def exp_ab_robustness(outdir: Path) -> dict:
     gpb2col = "#2ca02c"
     fig, ax = plt.subplots(figsize=(5.6, 3.7))
     ax.semilogy(
-        epss, clip(dev["ngh_kf"]), "o-", color=_C["ngh_kf"], ms=5, label="NGH-MSM-KF (assumes AB)"
+        epss, clip(dev["ngh_kf"]), "o-", color=_C["ngh_kf"], ms=5, label="CGOMSM2-KF (assumes AB)"
     )
     ax.semilogy(epss, clip(dev["gpb2"]), "s-", color=gpb2col, ms=5, label="GPB2 (order 2)")
     ax.semilogy(
@@ -1412,7 +1412,7 @@ def exp_approx_exactness(outdir: Path) -> dict:
 
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(12.2, 3.4))
     keys = [
-        ("ngh_kf", "NGH-MSM-KF", _C["ngh_kf"]),
+        ("ngh_kf", "CGOMSM2-KF", _C["ngh_kf"]),
         ("gpb2", "GPB2", _C["exact"]),
         ("imm", "IMM", _C["imm"]),
         ("rbpf", f"RBPF ({rbpf_M})", _C["oracle"]),
@@ -1443,7 +1443,7 @@ def exp_approx_exactness(outdir: Path) -> dict:
     )
     ax2.set_xscale("log")
     ax2.set_yscale("log")
-    ax2.axhline(max(floor, 1e-17), color="black", ls="--", lw=1, label="GPB2 / NGH-MSM-KF floor")
+    ax2.axhline(max(floor, 1e-17), color="black", ls="--", lw=1, label="GPB2 / CGOMSM2-KF floor")
     guide = rb_err[0] * np.sqrt(Ms[0] / np.array(Ms, dtype=float))
     ax2.plot(Ms, guide, ":", color="grey", lw=1, label=r"$\propto 1/\sqrt{M}$")
     ax2.set_xlabel("RBPF particles $M$")
@@ -1456,7 +1456,7 @@ def exp_approx_exactness(outdir: Path) -> dict:
     ax3.bar(range(4), cvals, color=ccols)
     ax3.set_yscale("log")
     ax3.set_xticks(range(4))
-    ax3.set_xticklabels(["NGH-MSM-KF", "IMM", "GPB2", "RBPF"], fontsize=7)
+    ax3.set_xticklabels(["CGOMSM2-KF", "IMM", "GPB2", "RBPF"], fontsize=7)
     ax3.set_ylabel(r"time / step [$\mu$s]")
     ax3.set_title(r"(c) Per-step cost (M1, $N=200$)")
     fig.tight_layout()
@@ -1466,10 +1466,10 @@ def exp_approx_exactness(outdir: Path) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# E7-fair — Fair comparison of the old (CGOMSM) and new (NGH-MSM) families
+# E7-fair — Fair comparison of the old (CGOMSM1) and new (CGOMSM2) families
 # ---------------------------------------------------------------------------
 def exp_fair_comparison(outdir: Path) -> dict:
-    """Fair head-to-head of the old (CGOMSM) and new (NGH-MSM) approximations on
+    """Fair head-to-head of the old (CGOMSM1) and new (CGOMSM2) approximations on
     a model that lies in *neither* family (scalar, symmetric in x and y).
 
     (a) Statistical parity: the families are exact time-reversal mirrors, so a
@@ -1525,7 +1525,7 @@ def exp_fair_comparison(outdir: Path) -> dict:
         sm_new.append(_mse(Bn, Bt, xn, w_all))
     tie_gap = float(np.max(np.abs(np.array(sm_old) - np.array(sm_new))))
 
-    # ---- (b) K=2 switching: NEW (NGH-MSM) exact-linear vs OLD (classical) K^N ----
+    # ---- (b) K=2 switching: NEW (CGOMSM2) exact-linear vs OLD (classical) K^N ----
     def _m(x):
         return np.array([[float(x)]])
 
@@ -1564,7 +1564,7 @@ def exp_fair_comparison(outdir: Path) -> dict:
     A, B, SU, Dl, SV = [0.6, 0.4], [0.2, 0.3], [0.5, 0.6], [0.2, -0.15], [0.5, 0.6]
     C, D = B[:], A[:]  # x<->y symmetric per regime (C=B, D=A)
     true = _build(A, B, C, D, SU, Dl, SV)
-    m_new = apply_AB_constraint(true)  # NEW family projection (NGH-MSM)
+    m_new = apply_AB_constraint(true)  # NEW family projection (CGOMSM2)
     m_old = _build(A, B, C, D, SU, Dl, SV, b_zero=True)  # OLD: X autonomous (classical)
 
     def _resid(p):  # max disagreement of IMM / GPB2 with the exact K^N filter
@@ -1580,14 +1580,14 @@ def exp_fair_comparison(outdir: Path) -> dict:
 
     # ---- figure ----
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(12, 3.4))
-    ax1.plot(deltas, fwd_old, color=_C["kal"], lw=2, label="CGOMSM")
-    ax1.plot(deltas, fwd_new, color=_C["ngh_kf"], lw=2, label="NGH-MSM")
+    ax1.plot(deltas, fwd_old, color=_C["kal"], lw=2, label="CGOMSM1")
+    ax1.plot(deltas, fwd_new, color=_C["ngh_kf"], lw=2, label="CGOMSM2")
     ax1.set_title("(a1) naive metric: causal forward filtering")
     ax1.set_xlabel(r"departure $\delta$")
     ax1.set_ylabel("state MSE")
     ax1.legend(fontsize=8)
-    ax2.plot(deltas, sm_old, color=_C["kal"], lw=3, label="CGOMSM")
-    ax2.plot(deltas, sm_new, "--", color=_C["ngh_kf"], lw=2, label="NGH-MSM")
+    ax2.plot(deltas, sm_old, color=_C["kal"], lw=3, label="CGOMSM1")
+    ax2.plot(deltas, sm_new, "--", color=_C["ngh_kf"], lw=2, label="CGOMSM2")
     ax2.set_title("(a2) fair metric: time-symmetric (smoothing)")
     ax2.set_xlabel(r"departure $\delta$")
     ax2.set_ylabel("state MSE")
@@ -1599,10 +1599,10 @@ def exp_fair_comparison(outdir: Path) -> dict:
     ax3.bar(xb + bw / 2, [gpb2_new, gpb2_old], bw, color=_C["oracle"], label="GPB2")
     ax3.set_yscale("log")
     ax3.set_xticks(xb)
-    ax3.set_xticklabels(["NGH-MSM", "CGOMSM"])
+    ax3.set_xticklabels(["CGOMSM2", "CGOMSM1"])
     ax3.axhline(1e-12, color="black", ls=":", lw=1)
     ax3.text(1.45, 2e-12, "round-off", fontsize=7, ha="right")
-    ax3.set_title("(b) history-collapse lossless only on NGH-MSM")
+    ax3.set_title("(b) history-collapse lossless only on CGOMSM2")
     ax3.set_ylabel("max abs. difference vs exact")
     ax3.legend(fontsize=8)
     fig.tight_layout()
@@ -1633,13 +1633,13 @@ def exp_fair_comparison(outdir: Path) -> dict:
 # sign-flipping input gain.
 # ---------------------------------------------------------------------------
 def consigne_model(g: float = 1.2, p_switch: float = 0.04, m: float = 0.8) -> GSSParams:
-    """K=2 'quiet/volatile' NGH-MSM with a 1-D exogenous input whose hidden-state
+    """K=2 'quiet/volatile' CGOMSM2 with a 1-D exogenous input whose hidden-state
     gain flips sign across regimes (G^X = +g in regime 0, -g in regime 1; G^Y = 0),
     so the known input u drives X in opposite directions depending on the regime.
     The slaving read-out gain is then N_r = G^X_r = ±g: only a regime-aware filter
     recovers the input contribution; a regime-blind filter averages the gain to ~0.
     The regime stays identifiable from Y (quiet vs volatile). Built from free blocks
-    (NGH-MSM valid by construction), stationary init."""
+    (CGOMSM2 valid by construction), stationary init."""
     from prg.classes.FMatrix import FMatrix
     from prg.classes.NoiseCovariance import GSSNoiseCovariance
     from prg.utils.ab_constraint import compute_AB
@@ -1731,9 +1731,9 @@ def exp_consigne(outdir: Path) -> dict:
     nn = np.arange(N)[seg]
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8.8, 3.4))
     ax1.plot(nn, xs0[seg, 0], color="black", lw=1.3, label="true $X_n$")
-    ax1.plot(nn, ex_u[seg, 0], color=_C["ngh_kf"], lw=1.1, label=r"NGH-MSM-KF (consigne)")
+    ax1.plot(nn, ex_u[seg, 0], color=_C["ngh_kf"], lw=1.1, label=r"CGOMSM2-KF (consigne)")
     ax1.plot(
-        nn, ex_no[seg, 0], color=_C["imm"], lw=1.0, ls="--", label=r"NGH-MSM-KF (blind to $u$)"
+        nn, ex_no[seg, 0], color=_C["imm"], lw=1.0, ls="--", label=r"CGOMSM2-KF (blind to $u$)"
     )
     ax1.set_xlabel("$n$")
     ax1.set_ylabel("state $X_n$")
@@ -1742,8 +1742,8 @@ def exp_consigne(outdir: Path) -> dict:
     order = ["pairwise_blind", "ngh_kf_blind", "ngh_kf_consigne", "oracle_consigne"]
     labels = [
         "pairwise\nKalman\n(blind)",
-        "NGH-MSM-KF\n(blind to $u$)",
-        "NGH-MSM-KF\n(consigne)",
+        "CGOMSM2-KF\n(blind to $u$)",
+        "CGOMSM2-KF\n(consigne)",
         "oracle\n(regimes+$u$)",
     ]
     cols = [_C["kal"], _C["imm"], _C["ngh_kf"], _C["oracle"]]

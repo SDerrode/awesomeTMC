@@ -3,9 +3,9 @@
 """
 prg/models/model_gss_K2_q1_s1_consigne.py
 =========================================
-NGH-MSM demo *with an exogenous input* ("consigne"): K=2, q=1, s=1, p=1.
+CGOMSM2 demo *with an exogenous input* ("consigne"): K=2, q=1, s=1, p=1.
 
-Same NGH-MSM blocks as ``model_gss_K2_q1_s1`` (A, B derived from the AB
+Same CGOMSM2 blocks as ``model_gss_K2_q1_s1`` (A, B derived from the AB
 constraint, so AB holds by construction), plus a regime-dependent input gain
 G(k) = [G^X(k); G^Y(k)] whose hidden-state component **flips sign across
 regimes** — so the known input u_n drives X in opposite directions depending on
@@ -28,7 +28,7 @@ __all__ = ["ModelGssK2Q1S1Consigne"]
 
 
 class ModelGssK2Q1S1Consigne(BaseGSSModel):
-    """NGH-MSM with a 1-D exogenous input (K=2, q=1, s=1, p=1)."""
+    """CGOMSM2 with a 1-D exogenous input (K=2, q=1, s=1, p=1)."""
 
     K: int = 2
     q: int = 1

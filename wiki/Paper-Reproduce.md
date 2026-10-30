@@ -104,14 +104,14 @@ Regenerated with v2.0.0; these are the values in `results/enso/e2_table.json`.
 | Kalman K=1 | **−24.26** | **0.467** |
 | GPB2 (OLS fit) | −24.85 | 0.577 |
 | GPB2 (AB fit) | −29.80 | 0.645 |
-| NGH-MSM-KF (AB fit) | −30.09 | 0.644 |
+| CGOMSM2-KF (AB fit) | −30.09 | 0.644 |
 
-→ On ENSO the constant-gain NGH-MSM-KF does **not** win, and there is no reason it
-should: this dataset is not an NGH-MSM, so the AB constraint the filter assumes is
+→ On ENSO the constant-gain CGOMSM2-KF does **not** win, and there is no reason it
+should: this dataset is not a CGOMSM2, so the AB constraint the filter assumes is
 misspecified, and a plain regime-blind Kalman filter comes out ahead on both test
 log-likelihood and MSE. GPB2, which does not assume AB, sits in between — as
 expected. The exactness claims of the paper are established on models that *are*
-NGH-MSMs (see the paper's §VI); this study probes what happens when they are not.
+CGOMSM2s (see the paper's §VI); this study probes what happens when they are not.
 
 *(Before v2.0.0 this table reported −20.56 for the constant-gain filter and
 concluded that it "achieves the best test log-likelihood, as predicted by theory".
@@ -135,7 +135,7 @@ at every M-step (V2) is a different matter: it costs ~1000 nats of training
 likelihood and degrades every test metric, because the constraint is imposed
 throughout the optimisation rather than at the end. None of the three separates the
 regimes (accuracy ≈ 0.42–0.50 for K=3, i.e. at or below chance): recovering an
-NGH-MSM from data is the open identifiability problem the paper's conclusion flags
+CGOMSM2 from data is the open identifiability problem the paper's conclusion flags
 as future work, not a solved one.
 
 ## Recompiling the paper

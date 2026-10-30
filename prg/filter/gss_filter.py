@@ -64,7 +64,7 @@ Default mode (``mode=None``)
 ---------------------------
 When ``mode`` is left ``None`` the filter dispatches on the *type* of
 ``params``: a :class:`~prg.classes.GSSParams.NGHMSMParams` (a validated
-NGH-MSM, where AB holds by construction) defaults to ``"ngh_kf"``; any other
+CGOMSM2, where AB holds by construction) defaults to ``"ngh_kf"``; any other
 :class:`GSSParams` defaults to ``"gpb2"``. Pass ``mode`` explicitly to override.
 
 Joseph form (optional, ngh_kf only)
@@ -178,7 +178,7 @@ class GSSFilter:
     mode : {"ngh_kf", "gpb2"} or None, default None
         Filter recursion variant. When ``None`` the mode dispatches on the
         type of ``params``: a :class:`~prg.classes.GSSParams.NGHMSMParams`
-        (validated NGH-MSM) uses ``"ngh_kf"``, any other ``GSSParams``
+        (validated CGOMSM2) uses ``"ngh_kf"``, any other ``GSSParams``
         uses ``"gpb2"``. An explicit value always overrides.
 
         * ``"ngh_kf"`` — exact constant-gain filter, with stationary
@@ -223,7 +223,7 @@ class GSSFilter:
     ) -> None:
         from prg.classes.GSSParams import NGHMSMParams
 
-        # Default mode dispatches on type: a validated NGH-MSM uses the exact
+        # Default mode dispatches on type: a validated CGOMSM2 uses the exact
         # constant-gain filter; a general GSSParams uses GPB2 (see module
         # docstring). An explicit mode always overrides.
         if mode is None:
@@ -415,7 +415,7 @@ class GSSFilter:
         from prg.classes.GSSParams import NGHMSMParams
 
         if isinstance(p, NGHMSMParams):
-            # Closed form for a validated NGH-MSM. Under the AB constraint the
+            # Closed form for a validated CGOMSM2. Under the AB constraint the
             # regime-conditional posterior is *exactly* N(M_k y, Γ_k), constant in n
             # and independent of the stationary Σ(k): K_k ≡ M_k = Δ_k Σ_V_k⁻¹ and
             # P_post(k) ≡ Γ_k = Σ_U_k − Δ_k Σ_V_k⁻¹ Δ_k^T (Schur complement). The

@@ -201,14 +201,14 @@ class GSSNoiseCovariance:
         return self._Sigma_V[k]
 
     # ------------------------------------------------------------------
-    # Closed-form regime-conditional moments (AB / NGH-MSM family)
+    # Closed-form regime-conditional moments (AB / CGOMSM2 family)
     # ------------------------------------------------------------------
 
     def M(self, k: int) -> np.ndarray:
         """
         Closed-form regime-conditional gain ``M_k = Δ_k Σ_V_k⁻¹``, shape (q, s).
 
-        Under the AB constraint that defines the NGH-MSM family
+        Under the AB constraint that defines the CGOMSM2 family
         (``A_k = Δ_k Σ_V_k⁻¹ C_k``, ``B_k = Δ_k Σ_V_k⁻¹ D_k``), the hidden
         state is, conditionally on the regime, an affine function of the
         *current* observation:

@@ -10,7 +10,9 @@ Simulation and **fast exact jump-filtering** algorithms for the paper:
 The paper introduces an exact, **linear-time** optimal filter for Gaussian
 switching state-space models satisfying a closed-form structural constraint
 (the **AB constraint**; these models are called CGOMSM2 in the paper, and the
-models with C = 0 are called CGOMSM1). The command that regenerates the tables and
+models with C = 0 are called CGOMSM1; earlier releases said NGH-MSM and CGO-MSM, and
+the API keeps that spelling in `NGHMSMParams`, `validate_ngh_msm` and the filter mode
+`"ngh_kf"`). The command that regenerates the tables and
 figures of its Section V from this code is in
 [Reproducing Section V of the paper](#reproducing-section-v-of-the-paper) below.
 

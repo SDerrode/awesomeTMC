@@ -2,22 +2,22 @@
 """
 tests/test_cns_validity.py
 ==========================
-Guard tests for the corrected NGH-MSM condition (Proposition 2) and the
+Guard tests for the corrected CGOMSM2 condition (Proposition 2) and the
 closed-form regime-conditional moments.
 
 Coverage
 --------
-- Every GUI preset is a *valid* NGH-MSM (AB constraint + C ≠ 0, Σ_V ≻ 0,
+- Every GUI preset is a *valid* CGOMSM2 (AB constraint + C ≠ 0, Σ_V ≻ 0,
   Γ ⪰ 0).  This would fail on the pre-fix presets, which all violated
   the AB constraint — it is the regression guard for P0.
 - Full column rank of C (s ≥ q) is *not* required: an AB-constrained s < q model
-  is a valid NGH-MSM (the rank condition was an over-restriction).
+  is a valid CGOMSM2 (the rank condition was an over-restriction).
 - ``NoiseCovariance.M`` / ``Gamma`` match the closed forms, and under AB
   ``A = M C``, ``B = M D``.
 - ``validate_ngh_msm`` / ``GSSParams.check_ngh_msm`` flag each violated
   condition (AB residual, C = 0).
 - D-invertibility is *not* required (corrected Proposition 2 needs only Σ_V ≻ 0):
-  an AB-constrained model with a singular D is a valid NGH-MSM.
+  an AB-constrained model with a singular D is a valid CGOMSM2.
 """
 
 from __future__ import annotations
@@ -64,7 +64,7 @@ def _params(A, B, C, D, SU, Dt, SV, *, K=2, q=1, s=1):
 
 
 def _free_blocks():
-    """Free blocks (C, D, Σ_U, Δ, Σ_V) of a small valid NGH-MSM (K=2, q=1, s=1)."""
+    """Free blocks (C, D, Σ_U, Δ, Σ_V) of a small valid CGOMSM2 (K=2, q=1, s=1)."""
     C = [np.array([[0.2]]), np.array([[0.1]])]
     D = [np.array([[0.7]]), np.array([[0.6]])]
     SU = [np.array([[0.1]]), np.array([[0.2]])]
@@ -74,7 +74,7 @@ def _free_blocks():
 
 
 def _valid_ab_params():
-    """A small, valid NGH-MSM model (K=2, q=1, s=1), built via the deriving factory."""
+    """A small, valid CGOMSM2 model (K=2, q=1, s=1), built via the deriving factory."""
     C, D, SU, Dt, SV = _free_blocks()
     return NGHMSMParams.from_free_blocks(
         K=2,
@@ -93,7 +93,7 @@ def _valid_ab_params():
 
 
 # ---------------------------------------------------------------------------
-# Presets are valid NGH-MSM (regression guard for P0)
+# Presets are valid CGOMSM2 (regression guard for P0)
 # ---------------------------------------------------------------------------
 @pytest.mark.parametrize("entry", PRESETS, ids=lambda e: e.module_name)
 def test_preset_is_valid_ngh_msm(entry):
@@ -112,7 +112,7 @@ def test_s_lt_q_validity_is_about_AB_not_rank():
     # rank condition was an over-restriction (verified single- and multi-regime).
     # The raw fixture has non-AB blocks, so it is rejected *only* for the AB
     # violation — not for rank or s < q. AB-constraining the same blocks yields a
-    # valid NGH-MSM.
+    # valid CGOMSM2.
     raw = GSSParams.from_model(ModelGss_K2_q2_s1())  # s=1 < q=2, raw (non-AB) blocks
     issues = validate_ngh_msm(raw)
     assert not any("rank(C)" in m for m in issues)
@@ -175,7 +175,7 @@ def test_non_ab_model_is_flagged():
 
 def test_singular_D_is_now_valid():
     # D-invertibility is no longer required (corrected Proposition 2 needs only
-    # Σ_V ≻ 0): an AB-constrained model with D(0) singular is a valid NGH-MSM.
+    # Σ_V ≻ 0): an AB-constrained model with D(0) singular is a valid CGOMSM2.
     C = [np.array([[0.2]]), np.array([[0.1]])]
     D = [np.array([[0.0]]), np.array([[0.6]])]  # D(0) singular
     SU = [np.array([[0.1]]), np.array([[0.2]])]
@@ -192,7 +192,7 @@ def test_singular_D_is_now_valid():
 
 def test_C_zero_is_flagged():
     # C = 0 is flagged as a family-membership boundary: the model is then a classical
-    # CMS-HLM (the (H4) family), not a NGH-MSM. (Mathematically AB is still the NSC at
+    # CMS-HLM (the (H4) family), not a CGOMSM2. (Mathematically AB is still the NSC at
     # C = 0; the flag separates the old family from the new, it is not an invalidity.)
     C = [np.array([[0.2]]), np.zeros((1, 1))]  # C(1) = 0
     D = [np.array([[0.5]]), np.array([[0.6]])]
@@ -211,14 +211,14 @@ def test_C_zero_is_flagged():
 
 def test_check_ngh_msm_raises_on_invalid():
     params = GSSParams.from_model(ModelGss_K2_q2_s1())
-    with pytest.raises(ParamError, match="not a valid NGH-MSM"):
+    with pytest.raises(ParamError, match="not a valid CGOMSM2"):
         params.check_ngh_msm(raise_on_fail=True)
     # raise_on_fail=False returns the issue list instead
     assert params.check_ngh_msm(raise_on_fail=False)
 
 
 # ---------------------------------------------------------------------------
-# NGHMSMParams: the validated-NGH-MSM type
+# NGHMSMParams: the validated-CGOMSM2 type
 # ---------------------------------------------------------------------------
 class TestNGHMSMParams:
     def test_from_free_blocks_is_validated_subtype(self):
@@ -244,7 +244,7 @@ class TestNGHMSMParams:
 
     def test_from_free_blocks_accepts_s_lt_q(self):
         # s < q is no longer rejected: from_free_blocks AB-derives A, B, yielding a
-        # valid NGH-MSM even with a rank-deficient (but nonzero) C.
+        # valid CGOMSM2 even with a rank-deficient (but nonzero) C.
         d = ModelGss_K2_q2_s1().get_params()  # s=1 < q=2
         p = NGHMSMParams.from_free_blocks(
             K=d["K"],
@@ -266,7 +266,7 @@ class TestNGHMSMParams:
 
     def test_from_free_blocks_accepts_singular_D(self):
         # D-invertibility is no longer required: compute_AB succeeds with D=0
-        # (B=0) and construction yields a valid NGH-MSM (only Σ_V ≻ 0 is needed).
+        # (B=0) and construction yields a valid CGOMSM2 (only Σ_V ≻ 0 is needed).
         C, D, SU, Dt, SV = _free_blocks()
         D = [np.array([[0.0]]), D[1]]  # D(0) singular
         p = NGHMSMParams.from_free_blocks(

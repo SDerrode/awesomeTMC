@@ -471,7 +471,7 @@ class GSSParams:
         return self._chol_z0[k]
 
     # ------------------------------------------------------------------
-    # NGH-MSM validity (corrected CNS of Proposition 2)
+    # CGOMSM2 validity (corrected CNS of Proposition 2)
     # ------------------------------------------------------------------
 
     def check_ngh_msm(
@@ -481,7 +481,7 @@ class GSSParams:
         raise_on_fail: bool = True,
     ) -> list[str]:
         """
-        Validate that this model is a valid NGH-MSM (corrected CNS, Prop. 2).
+        Validate that this model is a valid CGOMSM2 (corrected CNS, Prop. 2).
 
         Checks the AB constraint together with the structural
         hypotheses (C_k ≠ 0, Σ_V_k ≻ 0,
@@ -499,13 +499,13 @@ class GSSParams:
         Returns
         -------
         list[str]
-            Empty iff the model is a valid NGH-MSM; otherwise one string per
+            Empty iff the model is a valid CGOMSM2; otherwise one string per
             violated condition.
 
         Raises
         ------
         ParamError
-            If ``raise_on_fail`` and the model is not a valid NGH-MSM.
+            If ``raise_on_fail`` and the model is not a valid CGOMSM2.
 
         Notes
         -----
@@ -517,13 +517,13 @@ class GSSParams:
         issues = validate_ngh_msm(self, tol=tol)
         if issues and raise_on_fail:
             raise ParamError(
-                "Model is not a valid NGH-MSM (corrected CNS of Prop. 2):\n  - "
+                "Model is not a valid CGOMSM2 (corrected CNS of Prop. 2):\n  - "
                 + "\n  - ".join(issues)
             )
         return issues
 
     def is_ngh_msm(self, *, tol: float = 1e-6) -> bool:
-        """``True`` iff this model is a valid NGH-MSM (cf. :meth:`check_ngh_msm`)."""
+        """``True`` iff this model is a valid CGOMSM2 (cf. :meth:`check_ngh_msm`)."""
         return not self.check_ngh_msm(tol=tol, raise_on_fail=False)
 
     # ------------------------------------------------------------------
@@ -564,7 +564,7 @@ class GSSParams:
 
 class NGHMSMParams(GSSParams):
     """
-    A :class:`GSSParams` restricted to the NGH-MSM (AB) family.
+    A :class:`GSSParams` restricted to the CGOMSM2 (AB) family.
 
     Holding an ``NGHMSMParams`` is a *type-level guarantee* that the model
     satisfies the corrected CNS of Proposition 2: the AB constraint
@@ -619,7 +619,7 @@ class NGHMSMParams(GSSParams):
         issues = validate_ngh_msm(self, tol=tol)
         if issues:
             raise ParamError(
-                "NGHMSMParams requires a valid NGH-MSM (corrected CNS of Prop. 2):\n  - "
+                "NGHMSMParams requires a valid CGOMSM2 (corrected CNS of Prop. 2):\n  - "
                 + "\n  - ".join(issues)
             )
 
@@ -648,7 +648,7 @@ class NGHMSMParams(GSSParams):
         tol: float = 1e-6,
     ) -> NGHMSMParams:
         """
-        Build an NGH-MSM from its *free* blocks, **deriving** A, B.
+        Build a CGOMSM2 from its *free* blocks, **deriving** A, B.
 
         ``A_k, B_k`` are computed as ``Δ_k Σ_V_k⁻¹ C_k`` and ``Δ_k Σ_V_k⁻¹ D_k``
         (``compute_AB``), so the AB constraint holds by construction — a non-AB
@@ -699,8 +699,8 @@ class NGHMSMParams(GSSParams):
     @classmethod
     def from_model(cls, model) -> NGHMSMParams:
         """
-        Build a validated NGH-MSM from a model, **deriving** A, B from its free
-        blocks (any model-supplied A, B are ignored — for an NGH-MSM model they
+        Build a validated CGOMSM2 from a model, **deriving** A, B from its free
+        blocks (any model-supplied A, B are ignored — for a CGOMSM2 model they
         are redundant with the derivation).
         """
         p = model.get_params()

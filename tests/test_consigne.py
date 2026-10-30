@@ -29,7 +29,7 @@ from prg.utils.input_signal import INPUT_GENERATORS, make_input
 
 
 def _consigne_params(seed=0, scale=1.3, p=2):
-    """An NGH-MSM (K=2, q=2, s=2) augmented with a random p-dim input gain."""
+    """A CGOMSM2 (K=2, q=2, s=2) augmented with a random p-dim input gain."""
     d = ModelGss_K2_q2_s2().get_params()
     K, q, s = d["K"], d["q"], d["s"]
     rng = np.random.default_rng(seed)

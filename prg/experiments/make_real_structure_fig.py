@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Regenerate the "Real-data evidence" figure of the experimental report.
 
-Shows the two NGH-MSM ingredients that occur in real data:
+Shows the two CGOMSM2 ingredients that occur in real data:
   (a) slaving + a regime-dependent read-out  -> ENSO climate indices;
   (b) a sign-flipping read-out               -> S&P 500 vs 10-year Treasury.
 

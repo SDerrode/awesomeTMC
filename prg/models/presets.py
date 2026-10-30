@@ -61,9 +61,9 @@ PRESETS: list[PresetEntry] = [
         s=2,
     ),
     # NOTE: the K=2, q=2, s=1 model is not offered as a preset. Its raw blocks are
-    # not AB-constrained, so it is not a valid NGH-MSM (the AB residual is
+    # not AB-constrained, so it is not a valid CGOMSM2 (the AB residual is
     # nonzero). Note that s < q (rank-deficient C) is NOT itself a defect: an
-    # AB-constrained s < q model IS a valid NGH-MSM (the full-column-rank condition
+    # AB-constrained s < q model IS a valid CGOMSM2 (the full-column-rank condition
     # was an over-restriction). The file model_gss_K2_q2_s1.py is kept as a test
     # fixture for the non-AB / sub-determined (K·s < q+s) case.
     PresetEntry(
@@ -86,7 +86,7 @@ PRESETS: list[PresetEntry] = [
     ),
     PresetEntry(
         label="K=2, q=1, s=1 — Consigne (exogenous input)",
-        tooltip="NGH-MSM with a 1-D exogenous input (consigne); the hidden-state "
+        tooltip="CGOMSM2 with a 1-D exogenous input (consigne); the hidden-state "
         "gain G^X flips sign across regimes.",
         module_name="model_gss_K2_q1_s1_consigne",
         class_name="ModelGssK2Q1S1Consigne",

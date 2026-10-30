@@ -459,7 +459,7 @@ class TestStationaryMoments:
         """Proposition 4 (direct form): for an AB-constrained model the closed-form
         regime gain ``M_k = Δ_k Σ_V_k⁻¹`` and covariance
         ``Γ_k = Σ_U_k − Δ_k Σ_V_k⁻¹ Δ_k^T`` — used by ``mode='ngh_kf'`` for a
-        validated NGH-MSM (:mod:`prg.filter.gss_filter`) — coincide with the gain
+        validated CGOMSM2 (:mod:`prg.filter.gss_filter`) — coincide with the gain
         and posterior built from the fixed-point stationary moments,
         ``K_k = Σ_XY(k) Σ_YY(k)⁻¹`` and ``Σ_XX(k) − K_k Σ_YY(k) K_k^T``. This is
         the numerical check that the Riccati fixed-point machinery is redundant

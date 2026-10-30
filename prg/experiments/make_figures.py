@@ -93,7 +93,7 @@ MARKERS = {
     "gpb2": "s",
 }
 MODE_LABELS = {
-    "ngh_kf": r"NGH-MSM-KF",
+    "ngh_kf": r"CGOMSM2-KF",
     "gpb2": r"IMM-general",
 }
 
@@ -240,7 +240,7 @@ def make_tab_filter(
             ]
         return "    " + " & ".join(parts) + r" \\"
 
-    two_method_header = r"& \multicolumn{4}{c}{NGH-MSM-KF} & \multicolumn{4}{c}{GPB2}"
+    two_method_header = r"& \multicolumn{4}{c}{CGOMSM2-KF} & \multicolumn{4}{c}{GPB2}"
     col_header = (
         r"$N$ / Model & RMSE & NEES & LB\% & CPU($\mu$s) "
         r"& RMSE & NEES & LB\% & CPU($\mu$s)"

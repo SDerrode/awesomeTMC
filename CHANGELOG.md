@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ``‖C_k‖ max(‖A_j‖, ‖M_j C_j‖)``. Regression test added.
 
 ### Changed
+- Model names aligned with both papers: NGH-MSM is now **CGOMSM2** and CGO-MSM (also
+  "CGOMSM" or "CGO") is now **CGOMSM1** in docstrings, comments, messages, GUI texts and
+  figure labels; the constant-gain filter is labelled ``CGOMSM2-KF``. Identifiers are
+  unchanged (``NGHMSMParams``, ``validate_ngh_msm``, ``check_ngh_msm``, mode ``"ngh_kf"``,
+  module ``homotopy_cgo_ngh``), so no code needs to change; the ``ParamError`` message now
+  reads "not a valid CGOMSM2".
 - README: new section "Reproducing the exactness-domain paper" (Lehmann & Derrode,
   *When Are the IMM and GPB2 Filters Exact?*), with the two experiment scripts and the
   ``prg.utils.exactness`` API; citation of that paper in "Citing" and in ``CITATION.cff``

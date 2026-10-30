@@ -3,7 +3,7 @@
 Eleven experiments back the numbers quoted in the exactness-domains paper
 (docs/CNS-exactness):
 
-E1  IMM realizes the CGO-MSM exact filter: on a genuine CGO-MSM (C=0, state
+E1  IMM realizes the CGOMSM1 exact filter: on a genuine CGOMSM1 (C=0, state
     memory A_r != 0, regimes identifiable), IMM and GPB2 match the exact
     mixture filter to ~1e-15 -- mean, covariance and regime posterior.
 E2  Slaving-(A)-only models (A=MC, C!=0, B!=MD): GPB2 stays exact (~1e-15)
@@ -18,7 +18,7 @@ E5  Mixed-branch models (paper indices: regime 1 has C=0 with memory A_1,
     names A0/C1 for the same blocks): each regime passes the per-regime
     disjunction, yet GPB2 is biased as soon as the memory is nonzero -- the
     exactness domain is the union of the two *uniform* families.
-E6  The constant-gain (NGH-MSM) filter: exact on AB, loses half the signal
+E6  The constant-gain (CGOMSM2) filter: exact on AB, loses half the signal
     one step off AB (B = MD + 0.15) while GPB2 stays at machine precision.
 E7  Beyond the scalar two-regime case: a q=2 instance where A=MC genuinely
     constrains the rank, and a K=3 mixed-branch instance of the uniformity
@@ -50,8 +50,8 @@ E11 The (R,Y)-Markov class: (R,Y) is a Markov chain iff the observation rows
     annihilate both the memories and the input residuals, C_k N_j = 0 and
     C_k (B_j - M_j D_j) = 0 for all pairs -- a sub-family of the GPB2 domain
     on which the regime posterior obeys the K-state constant-kernel recursion
-    of the NGH filter. On a q=2 model of that class outside CGO and AB the
-    NGH regime posterior is exact while its state read-out is not; moving
+    of the CGOMSM2 filter. On a q=2 model of that class outside CGOMSM1 and AB the
+    CGOMSM2 regime posterior is exact while its state read-out is not; moving
     the input residual out of the kernel of the channel breaks the regime
     recursion.
 
@@ -116,7 +116,7 @@ def _params(A, B, C, D, SU, Dt, SV, p_switch, P=None):
 
 
 def cgo_memory_model():
-    """E1: genuine CGO-MSM -- C=0, state memory A_r != 0 (so outside AB),
+    """E1: genuine CGOMSM1 -- C=0, state memory A_r != 0 (so outside AB),
     regimes identifiable through the observation volatility (SV 0.20/0.60).
 
     The volatility contrast matters: with SV=0.30/0.40 the exact regime
@@ -384,7 +384,7 @@ def ry_markov_model(residual_in_kernel=True, beta=(0.2, -0.15), p_switch=0.10):
     """E11: q=2, s=1, K=2. Rows C_k = [c_k, 0], memories N_j = e_2 v_j^T (so
     C_k N_j = 0), input residual B_j - M_j D_j = beta_j e_2 (in the kernel of
     the rows: (R,Y) Markov, class Y) or beta_j e_1 (seen by the rows: off Y).
-    Outside CGO (C != 0) and AB (N != 0) in both cases."""
+    Outside CGOMSM1 (C != 0) and AB (N != 0) in both cases."""
     from prg.classes.FMatrix import FMatrix as _FM
     from prg.classes.NoiseCovariance import GSSNoiseCovariance as _NC
 
@@ -447,7 +447,7 @@ def _rel(a, b):
 
 
 def _run_cg(params, ys):
-    """Constant-gain (NGH-MSM) filter, the third filter of the map."""
+    """Constant-gain (CGOMSM2) filter, the third filter of the map."""
     from prg.experiments.study import _run
 
     ex, pi, var = _run(params, ys, "ngh_kf")
@@ -518,7 +518,7 @@ def gaps(params, n_steps=N_STEPS, with_cg=False, n_seeds=N_SEEDS):
 # experiments
 # ---------------------------------------------------------------------------
 def exp1_imm_realizes_cgo():
-    print("E1  CGO-MSM with state memory (C=0, A=(0.7,0.4)):")
+    print("E1  CGOMSM1 with state memory (C=0, A=(0.7,0.4)):")
     g = gaps(cgo_memory_model())
     for name in ("imm", "gpb2"):
         e, v, p = g[name]
@@ -718,7 +718,7 @@ def exp10_cross_annihilation():
 
 
 def exp11_ry_markov():
-    """E11: the (R,Y)-Markov class -- NGH regime recursion exact on it (state
+    """E11: the (R,Y)-Markov class -- CGOMSM2 regime recursion exact on it (state
     read-out not), biased off it; GPB2 exact on both (cross-annihilation)."""
     print("E11 (R,Y)-Markov class (q=2): C_k N_j = 0, input residual B-MD in / out of ker C:")
     out = {}
@@ -729,7 +729,7 @@ def exp11_ry_markov():
         g = gaps(ry_markov_model(residual_in_kernel=inker), with_cg=True)
         out[inker] = g
         print(
-            f"    {tag}  NGH post {g['cg'][2]:<22} NGH E_x {g['cg'][0]:<22}"
+            f"    {tag}  CGOMSM2 post {g['cg'][2]:<22} CGOMSM2 E_x {g['cg'][0]:<22}"
             f"| GPB2 post {g['gpb2'][2]:<12} E_x {g['gpb2'][0]:<12}| IMM post {g['imm'][2]}"
         )
     return out
