@@ -74,6 +74,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   GPB2 bank (cross-annihilation family, `q>1` included: random models with `q=3`, `K≤3`,
   `s≤2`, where S11 found no state smoother) and on `{C=0}` with the IMM bank, i.e. on the
   domain of its forward filter. Tests in `tests/test_classical_smoothers.py`.
+  `exp_onestep_robustness` (S13e) measures the off-domain behaviour along four violation
+  directions (`A = MC + η`, `C = η` with memory, matrix rows `[c_k, η]`, mixed `A0 = η`):
+  the one-step smoother degrades at first order with a large constant and loses to the
+  GPB2 pair-RTS beyond `η ≈ 0.03`–`0.04` (on the slaved and mixed directions at every `η`),
+  while Kim and the IMM-RTS stay at `0.06`–`0.15` and are dominated by the pair-RTS
+  everywhere. ``cns_exactness.cross_annihilation_model`` takes an optional ``c2``.
 
 ## [3.2.1] — 2026-10-30
 

@@ -2224,6 +2224,59 @@ def exp_classical_smoothers():
     return table, out, onestep
 
 
+def exp_onestep_robustness(etas=(0.02, 0.08, 0.3)):
+    """S13e: off the domain, how the one-step collapsed smoother degrades
+    compared with the RTS-type collapsed smoothers, along four violation
+    directions of size eta (median normalized error of the smoothed mean,
+    log-log slopes in eta)."""
+    directions = (
+        ("A = MC + eta  (C=0.4)", lambda e: off_union_model(0.4, e)),
+        ("C = eta, memory", near_c0_model),
+        ("C_k = [c_k, eta], q=2", lambda e: cross_annihilation_model(c2=e)),
+        ("mixed, A0 = eta", lambda e: mixed_branch_model(e, 0.7)),
+    )
+    methods = (
+        ("one-step GPB2", lambda p, ys: onestep_collapsed_smoother(p, ys, "gpb2")[0]),
+        ("one-step IMM", lambda p, ys: onestep_collapsed_smoother(p, ys, "imm")[0]),
+        ("pair-RTS GPB2", lambda p, ys: collapsed_rts_smoother(p, ys, "gpb2", "pair")[0]),
+        ("Kim", lambda p, ys: collapsed_rts_smoother(p, ys, "gpb2", "kim")[0]),
+        ("IMM-RTS", lambda p, ys: collapsed_rts_smoother(p, ys, "imm", "kim")[0]),
+    )
+    print(
+        "S13e off-domain robustness, median error of the smoothed mean"
+        " (GPB2 filtered error and smoothing gain for scale):"
+    )
+    head = "".join(f"{lab:>15s}" for lab, _ in methods)
+    print(f"    {'direction':24s}{'eta':>6s}{head}{'GPB2 filt':>12s}{'gain':>8s}")
+    out = {}
+    for dname, mk in directions:
+        med = {lab: [] for lab, _ in methods}
+        filt, gain = [], []
+        for eta in etas:
+            p = mk(eta)
+            e = {lab: [] for lab, _ in methods}
+            ef, eg = [], []
+            for sd in range(N_SEEDS):
+                _, _, ys = _simulate(p, N_STEPS, seed=SEED0 + sd)
+                Ex_s, _, _ = exact_path_smoother(p, ys)
+                for lab, fn in methods:
+                    e[lab].append(_rel(fn(p, ys), Ex_s))
+                Ex_f, _, _ = exact_mixture_filter(p, ys)
+                ef.append(_rel(gpb2_filter(p, ys)[0], Ex_f))
+                eg.append(_rel(Ex_f, Ex_s))
+            for lab, _ in methods:
+                med[lab].append(np.median(e[lab]))
+            filt.append(np.median(ef))
+            gain.append(np.median(eg))
+            cells = "".join(f"{med[lab][-1]:>15.2e}" for lab, _ in methods)
+            print(f"    {dname:24s}{eta:>6}{cells}{filt[-1]:>12.1e}{gain[-1]:>8.2f}")
+        x = np.log10(etas)
+        slopes = {lab: np.polyfit(x, np.log10(med[lab]), 1)[0] for lab, _ in methods}
+        print(f"    {'  slope':30s}" + "".join(f"{slopes[lab]:>15.2f}" for lab, _ in methods))
+        out[dname] = {"median": med, "slope": slopes, "filt": filt, "gain": gain}
+    return out
+
+
 def main():
     print(f"[smoothing_exactness] N={N_STEPS}, {N_SEEDS} seeds, ground truth K^N path smoother\n")
     exact_ab = exp_ab_gauge()
@@ -2249,6 +2302,8 @@ def main():
     exp_time_reversal()
     print()
     exp_classical_smoothers()
+    print()
+    exp_onestep_robustness()
 
 
 if __name__ == "__main__":
