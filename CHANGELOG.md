@@ -84,8 +84,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   enumerates the `K^{L+1}` regime windows `(r_n, …, r_{n+L})` and retrodicts `x_n` from
   `y_{n+1:n+L}` by an augmented Kalman filter started from the filtered pair summary
   (`L=1` is the one-step smoother): exact on the GPB2 domain for every `L`, and off it the
-  error falls with `L` — `L=2` already beats the pair-RTS on the slaved and mixed
-  directions, `L=5` on all four directions at every `η` tested.
+  error falls with `L` — `L=2` beats the pair-RTS only for the weakest violation
+  (`η=0.02`), `L=3` on all points but the two strongest violations, `L=5` on all four
+  directions at every `η` tested (by a factor 1.5 to 19).
 
 ## [3.2.1] — 2026-10-30
 

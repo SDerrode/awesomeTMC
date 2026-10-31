@@ -2164,6 +2164,7 @@ def exp_classical_smoothers():
         ("mixed (A0=0.4)    ", lambda: mixed_branch_model(0.4, 0.7)),
     )
     labels = [lab for lab, _, _ in CLASSICAL_SMOOTHERS] + ["HBH two-filter (S9)"]
+    lags = ("fixed-lag L=1, GPB2", "fixed-lag L=1, IMM")
     print("S13a classical collapsed smoothers, scalar gauges -- median state | regime error:")
     print("    " + " " * 20 + "".join(f"{lab[:26]:>28s}" for lab in labels))
     table = {}
@@ -2181,14 +2182,20 @@ def exp_classical_smoothers():
             eh = _hbh_or_nan(p, ys, Ex_s, gam_ex)
             ex[labels[-1]].append(eh[0])
             rg[labels[-1]].append(eh[1])
-        table[name.strip()] = {lab: (np.median(ex[lab]), np.median(rg[lab])) for lab in labels}
+            for lab, bank in zip(lags, ("gpb2", "imm")):
+                Ex, _, gam = onestep_collapsed_smoother(p, ys, bank)
+                ex.setdefault(lab, []).append(_rel(Ex, Ex_s))
+                rg.setdefault(lab, []).append(_rel(gam, gam_ex))
+        table[name.strip()] = {lab: (np.median(ex[lab]), np.median(rg[lab])) for lab in ex}
         cells = "".join(
             f"{'n/a (singular F)':>28s}"
             if np.isnan(ex[lab][0])
             else f"{np.median(ex[lab]):>19.1e} |{np.median(rg[lab]):>7.0e}"
             for lab in labels
         )
+        cells += "".join(f"{np.median(ex[lab]):>12.1e}" for lab in lags)
         print(f"    {name:20s}{cells}")
+    print("    (last two columns: state error of the fixed-lag smoother of S13d/f, L=1)")
 
     rng = np.random.default_rng(SEED0 + 13)
     print("S13b random models (6 per row), max over models of max(state, regime) error:")
