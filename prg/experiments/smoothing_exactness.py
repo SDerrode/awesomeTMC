@@ -1,6 +1,6 @@
 """Machine-precision checks of the exact fixed-interval smoothers (smoothing paper).
 
-Eleven experiments back the numbers quoted in the exact-smoothing paper
+Twelve experiments back the numbers quoted in the exact-smoothing paper
 (docs/exact-smoothing):
 
 S1  Smoothed regime posterior, exact and O(N K^2) on both families: the HMM
@@ -70,11 +70,28 @@ S11 The matrix case (E10 gauge of cns_exactness, q=2): on the cross-
     filtered state does not.  For q>1 the smoothing state domains covered
     here ({C==0} u {A==MC}) are strictly smaller than the GPB2 filtering
     domain.
+S12 Time reversal (random models, K=2, (q,s) in {(1,1),(2,1),(2,2)}): the
+    two exact smoothers are mirror filters.  On CGOMSM2 (AB) the per-regime
+    smoothed mean ignores the past and the pair-conditional one ignores
+    everything beyond (y_n, y_{n+1}) -- the smoother is a reweighted one-step
+    BACKWARD filter, equal to the constant-gain formula; on CGOMSM1 (C==0)
+    the per-regime smoothed mean ignores the future (reweighted FORWARD
+    filter), and the mean given (r_{n-1}, r_n) is one-step iff A==0, the
+    exact mirror of AB.  Reversed transitions: the reversal of an AB model
+    has C~ = A~ = 0 and a regime transition free of the hidden state; the
+    reversal of a C==0 model is AB iff A==0, its regime transition involves
+    the hidden state.  The moment-matched Gaussian reversal is exact for K=1
+    only (mixture caveat).  The [Abb15] pair-dependent CGOMSM1 sharing the
+    (R,Y) law and the filter of an AB model has the naive read-out as its
+    smoother.  The stationary K=1 example with state memory realizes the
+    mirror of memory for its stationary law only.
 
 Ground truth is the exact K^N path smoother: one conditional pair Kalman
 filter + RTS smoother per regime path, the paths weighted by their exact
 posterior p(path | y_{1:N}).  Errors are normalized sup-norm deviations,
-reported as median and max over seeds.
+reported as median and max over seeds.  S12 uses its own exact path
+enumeration for pair-dependent models (transition indexed by (r_n, r_{n+1})),
+which also returns the filtered and the regime-conditional summaries.
 
 Run:  python -m prg.experiments.smoothing_exactness
 """
@@ -816,6 +833,363 @@ def hbh_smoother(params, ys, diffuse=1e8, variant="pair"):
 
 
 # ---------------------------------------------------------------------------
+# S12 machinery: pair-dependent models, exact path quantities, time reversal
+# ---------------------------------------------------------------------------
+# A pair-dependent model is a dict with keys K, q, s, F[j][k], SW[j][k] (the
+# centered transition Z_{n+1} = F[j][k] Z_n + W, W ~ N(0, SW[j][k]), when
+# (r_n, r_{n+1}) = (j, k)), P, pi0, S0[k] (law N(0, S0[k]) of Z_1 | r_1 = k);
+# optionally "blocks" (per-regime A..SV of a THGMSM, where F[j][k] = F_k) and
+# "Pdyn"(j, k, y_n), a regime transition depending on the current observation
+# (needed by the time reversal).
+def exact_pair_quantities(model, ys):
+    """Exact filtered and smoothed quantities of a pair-dependent model by
+    path enumeration (conditional pair Kalman filter + RTS per regime path).
+
+    Returns a dict: Ex (N, q) smoothed mean; pi (N, K) smoothed regime
+    posterior; gpair (N-1, K, K) smoothed pair posterior; Exf (N, q) filtered
+    mean; filt_reg, smo_reg (N, K, q) the per-regime means E[X_n | r_n, y_{1:n}]
+    and E[X_n | r_n, y_{1:N}]; pair_cur, pair_next (N-1, K, K, q) the
+    pair-conditional smoothed means E[X_n | r_n, r_{n+1}, y_{1:N}] and
+    E[X_{n+1} | r_n, r_{n+1}, y_{1:N}].
+    """
+    K, q, s = model["K"], model["q"], model["s"]
+    F, SW = model["F"], model["SW"]
+    ys = np.asarray(ys, float).reshape(-1, s)
+    N = ys.shape[0]
+    H = _obs_matrix(q, s)
+    recs = []
+    for path in product(range(K), repeat=N):
+        z, Pc, ll = _kalman_exact_y_update(
+            np.zeros((q + s, 1)), model["S0"][path[0]], ys[0].reshape(s, 1), H
+        )
+        lw = float(np.log(model["pi0"][path[0]]) + ll)
+        zf, Pf, zp, Pp, lwf = [z], [Pc], [None], [None], [lw]
+        for n in range(1, N):
+            j, k = path[n - 1], path[n]
+            zpr = F[j][k] @ zf[-1]
+            Ppr = F[j][k] @ Pf[-1] @ F[j][k].T + SW[j][k]
+            z, Pc, ll = _kalman_exact_y_update(zpr, Ppr, ys[n].reshape(s, 1), H)
+            ptr = model["Pdyn"](j, k, ys[n - 1]) if "Pdyn" in model else model["P"][j, k]
+            lw += float(np.log(ptr) + ll)
+            zf.append(z)
+            Pf.append(Pc)
+            zp.append(zpr)
+            Pp.append(Ppr)
+            lwf.append(lw)
+        zs = [None] * N
+        zs[N - 1] = zf[N - 1]
+        for n in range(N - 2, -1, -1):
+            Fjk = F[path[n]][path[n + 1]]
+            G = Pf[n] @ Fjk.T @ np.linalg.inv(Pp[n + 1])
+            zs[n] = zf[n] + G @ (zs[n + 1] - zp[n + 1])
+        recs.append((path, lw, lwf, zf, zs))
+    lws = np.array([r[1] for r in recs])
+    w = np.exp(lws - lws.max())
+    w /= w.sum()
+    Ex = np.zeros((N, q))
+    pis = np.zeros((N, K))
+    gpair = np.zeros((N - 1, K, K))
+    smo_num = np.zeros((N, K, q))
+    cur_num = np.zeros((N - 1, K, K, q))
+    nxt_num = np.zeros((N - 1, K, K, q))
+    for wi, (path, _, _, _, zs) in zip(w, recs):
+        for n in range(N):
+            Ex[n] += wi * zs[n][:q, 0]
+            pis[n, path[n]] += wi
+            smo_num[n, path[n]] += wi * zs[n][:q, 0]
+        for n in range(N - 1):
+            gpair[n, path[n], path[n + 1]] += wi
+            cur_num[n, path[n], path[n + 1]] += wi * zs[n][:q, 0]
+            nxt_num[n, path[n], path[n + 1]] += wi * zs[n + 1][:q, 0]
+    # filtered quantities: one weight per regime prefix r_{1:n}
+    Exf = np.zeros((N, q))
+    filt_num = np.zeros((N, K, q))
+    filt_den = np.zeros((N, K))
+    for n in range(N):
+        prefixes = {}
+        for path, _, lwf, zf, _ in recs:
+            prefixes.setdefault(path[: n + 1], (lwf[n], zf[n][:q, 0]))
+        lw_n = np.array([v[0] for v in prefixes.values()])
+        wn = np.exp(lw_n - lw_n.max())
+        wn /= wn.sum()
+        for wi, (pre, (_, xm)) in zip(wn, prefixes.items()):
+            Exf[n] += wi * xm
+            filt_num[n, pre[-1]] += wi * xm
+            filt_den[n, pre[-1]] += wi
+    gp = np.maximum(gpair[..., None], 1e-300)
+    return dict(
+        Ex=Ex,
+        pi=pis,
+        gpair=gpair,
+        Exf=Exf,
+        filt_reg=filt_num / np.maximum(filt_den[:, :, None], 1e-300),
+        smo_reg=smo_num / np.maximum(pis[:, :, None], 1e-300),
+        pair_cur=cur_num / gp,
+        pair_next=nxt_num / gp,
+    )
+
+
+def _stationary_pair_cov(F, SW, P, tol=1e-15, max_iter=20000):
+    """Stationary regime law pi and per-regime Var[Z_n | r_n = k] of a
+    pair-dependent model (fixed point of the forward moment recursion)."""
+    K = P.shape[0]
+    vals, vecs = np.linalg.eig(P.T)
+    pi = np.real(vecs[:, np.argmin(np.abs(vals - 1))])
+    pi = pi / pi.sum()
+    d = F[0][0].shape[0]
+    Sig = [np.eye(d) for _ in range(K)]
+    for _ in range(max_iter):
+        new = []
+        for k in range(K):
+            acc = np.zeros((d, d))
+            for j in range(K):
+                acc += pi[j] * P[j, k] / pi[k] * (F[j][k] @ Sig[j] @ F[j][k].T + SW[j][k])
+            new.append(0.5 * (acc + acc.T))
+        gap = max(np.max(np.abs(a - b)) for a, b in zip(new, Sig))
+        if gap > 1e100:  # not mean-square stable: no stationary law
+            return pi, [np.full((d, d), np.inf) for _ in range(K)]
+        Sig = new
+        if gap < tol:
+            break
+    return pi, Sig
+
+
+def pair_thgmsm(A, B, C, D, SU, Dt, SV, P):
+    """THGMSM (F[j][k] = F_k) as a pair-dependent model, started from its
+    stationary regime law and the Gaussian moment-matched per-regime law."""
+    K = len(A)
+    q, s = A[0].shape[0], D[0].shape[0]
+    F = [[np.block([[A[k], B[k]], [C[k], D[k]]]) for k in range(K)] for _ in range(K)]
+    SW = [[np.block([[SU[k], Dt[k]], [Dt[k].T, SV[k]]]) for k in range(K)] for _ in range(K)]
+    pi, Sig = _stationary_pair_cov(F, SW, P)
+    blocks = dict(A=A, B=B, C=C, D=D, SU=SU, Dt=Dt, SV=SV)
+    return dict(K=K, q=q, s=s, F=F, SW=SW, P=P, pi0=pi, S0=Sig, blocks=blocks)
+
+
+def _sticky(K, p_stay=0.85):
+    if K == 1:
+        return np.array([[1.0]])
+    P = np.full((K, K), (1.0 - p_stay) / (K - 1))
+    np.fill_diagonal(P, p_stay)
+    return P
+
+
+def _rand_spd(rng, n, scale):
+    G = rng.normal(size=(n, n)) * scale
+    return G @ G.T + 0.2 * np.eye(n)
+
+
+def _contracting(A, B, C, D):
+    """Every per-regime F_k has spectral radius below 0.9."""
+    return all(
+        np.max(np.abs(np.linalg.eigvals(np.block([[a, b], [c, d]])))) < 0.9
+        for a, b, c, d in zip(A, B, C, D)
+    )
+
+
+def random_cgomsm2(rng, K, q, s):
+    """Random stable CGOMSM2: A = M C, B = M D, Delta = M SV, SU = Gam + M SV M^T."""
+    while True:
+        A, B, C, D, SU, Dt, SV = [], [], [], [], [], [], []
+        for _ in range(K):
+            SVk = _rand_spd(rng, s, 0.3)
+            Mk = rng.normal(size=(q, s)) * 0.6
+            Gk = _rand_spd(rng, q, 0.3)
+            Ck = rng.normal(size=(s, q)) * 0.5
+            Dk = rng.normal(size=(s, s)) * 0.4
+            A.append(Mk @ Ck)
+            B.append(Mk @ Dk)
+            C.append(Ck)
+            D.append(Dk)
+            SU.append(Gk + Mk @ SVk @ Mk.T)
+            Dt.append(Mk @ SVk)
+            SV.append(SVk)
+        if not _contracting(A, B, C, D):
+            continue
+        m = pair_thgmsm(A, B, C, D, SU, Dt, SV, _sticky(K))
+        if all(np.all(np.isfinite(S)) for S in m["S0"]):
+            return m
+
+
+def random_cgomsm1(rng, K, q, s, memory=True):
+    """Random stable CGOMSM1 (C = 0); state memory A = 0 when memory=False."""
+    while True:
+        A, B, C, D, SU, Dt, SV = [], [], [], [], [], [], []
+        for _ in range(K):
+            Wk = _rand_spd(rng, q + s, 0.4)
+            A.append(rng.normal(size=(q, q)) * 0.35 if memory else np.zeros((q, q)))
+            B.append(rng.normal(size=(q, s)) * 0.4)
+            C.append(np.zeros((s, q)))
+            D.append(rng.normal(size=(s, s)) * 0.4)
+            SU.append(Wk[:q, :q])
+            Dt.append(Wk[:q, q:])
+            SV.append(Wk[q:, q:])
+        if not _contracting(A, B, C, D):
+            continue
+        m = pair_thgmsm(A, B, C, D, SU, Dt, SV, _sticky(K))
+        if all(np.all(np.isfinite(S)) for S in m["S0"]):
+            return m
+
+
+def simulate_pair(model, N, seed):
+    """Observation record y_{1:N} (N, s) of a pair-dependent model."""
+    rng = np.random.default_rng(seed)
+    K, q, s = model["K"], model["q"], model["s"]
+    r = rng.choice(K, p=model["pi0"])
+    z = rng.multivariate_normal(np.zeros(q + s), model["S0"][r]).reshape(-1, 1)
+    ys = [z[q:, 0].copy()]
+    for _ in range(1, N):
+        k = rng.choice(K, p=model["P"][r])
+        w = rng.multivariate_normal(np.zeros(q + s), model["SW"][r][k]).reshape(-1, 1)
+        z = model["F"][r][k] @ z + w
+        r = k
+        ys.append(z[q:, 0].copy())
+    return np.array(ys)
+
+
+def _pair_slaving(model):
+    b, K = model["blocks"], model["K"]
+    M = [b["Dt"][k] @ np.linalg.inv(b["SV"][k]) for k in range(K)]
+    Gam = [b["SU"][k] - M[k] @ b["SV"][k] @ M[k].T for k in range(K)]
+    return M, Gam
+
+
+def abb15_pair_model(m2):
+    """The pair-dependent CGOMSM1 of [Abb15] matched to a CGOMSM2 m2 (Remark
+    rem:pairmodel of the paper): same (R,Y) law, same filter.
+
+    Both models are started from the slaved initial law Z_1 ~ N(0, SW_{r_1});
+    returns (pair model, m2 with that initial law).
+    """
+    b, K, q, s = m2["blocks"], m2["K"], m2["q"], m2["s"]
+    M, Gam = _pair_slaving(m2)
+    F = [[None] * K for _ in range(K)]
+    SW = [[None] * K for _ in range(K)]
+    for j in range(K):
+        for k in range(K):
+            Dp = b["D"][k] + b["C"][k] @ M[j]
+            SVp = b["SV"][k] + b["C"][k] @ Gam[j] @ b["C"][k].T
+            Dtp = M[k] @ SVp
+            F[j][k] = np.block([[np.zeros((q, q)), M[k] @ Dp], [np.zeros((s, q)), Dp]])
+            SW[j][k] = np.block([[Gam[k] + M[k] @ SVp @ M[k].T, Dtp], [Dtp.T, SVp]])
+    S0 = [m2["SW"][k][k] for k in range(K)]
+    pair = dict(K=K, q=q, s=s, F=F, SW=SW, P=m2["P"], pi0=m2["pi0"], S0=S0)
+    return pair, dict(m2, S0=S0)
+
+
+def time_reversal(model):
+    """Moment-matched Gaussian time reversal of a pair-dependent model started
+    from its stationary per-regime law S0.
+
+    Reversed regime chain P~[k, j] = pi_j P[j, k] / pi_k; reversed transition
+    Z_n = G Z_{n+1} + W~ (regression of Z_n on Z_{n+1} given (r_n, r_{n+1}) =
+    (j, k)), indexed in reversed time by (k, j); reversed regime transition
+    p(r_n = j | r_{n+1} = k, y_{n+1}), the form it takes when the law of X_{n+1}
+    given (y_{n+1}, r_n, r_{n+1}) does not depend on r_n (CGOMSM2).  Exact at
+    the first transition; for K >= 2 the per-regime law is a mixture and the
+    reversal is approximate (the mixture caveat measured by S12).
+    """
+    K, q = model["K"], model["q"]
+    pi, Sig, P = model["pi0"], model["S0"], model["P"]
+    Pr = np.array([[pi[j] * P[j, k] / pi[k] for j in range(K)] for k in range(K)])
+    Fr = [[None] * K for _ in range(K)]
+    SWr = [[None] * K for _ in range(K)]
+    SYY = [[None] * K for _ in range(K)]
+    for j in range(K):
+        for k in range(K):
+            F = model["F"][j][k]
+            S1 = F @ Sig[j] @ F.T + model["SW"][j][k]
+            G = Sig[j] @ F.T @ np.linalg.inv(S1)
+            R = Sig[j] - G @ S1 @ G.T
+            Fr[k][j] = G
+            SWr[k][j] = 0.5 * (R + R.T)
+            SYY[j][k] = S1[q:, q:]
+
+    def Pdyn(k, j, y):  # reversed step r~_m = k -> r~_{m+1} = j, y = y~_m
+        y = np.asarray(y, float).reshape(-1)
+        lw = np.array(
+            [
+                np.log(pi[i] * P[i, k])
+                - 0.5 * (np.linalg.slogdet(SYY[i][k])[1] + y @ np.linalg.solve(SYY[i][k], y))
+                for i in range(K)
+            ]
+        )
+        wts = np.exp(lw - lw.max())
+        return wts[j] / wts.sum()
+
+    return dict(K=K, q=q, s=model["s"], F=Fr, SW=SWr, P=Pr, pi0=pi, S0=Sig, Pdyn=Pdyn)
+
+
+def reversed_regime_state_gap(model):
+    """max over (j, j', k) of the gap between the Gaussian laws of X_{n+1}
+    given (y_{n+1}, r_n, r_{n+1} = k) for r_n = j and r_n = j' (regression
+    coefficient and covariance) at the first transition: 0 iff the reversed
+    regime transition does not involve the hidden state."""
+    K, q, Sig = model["K"], model["q"], model["S0"]
+    laws = {}
+    for j in range(K):
+        for k in range(K):
+            S = model["F"][j][k] @ Sig[j] @ model["F"][j][k].T + model["SW"][j][k]
+            reg = S[:q, q:] @ np.linalg.inv(S[q:, q:])
+            laws[j, k] = (reg, S[:q, :q] - reg @ S[q:, :q])
+    return max(
+        max(
+            np.max(np.abs(laws[j, k][0] - laws[i, k][0])),
+            np.max(np.abs(laws[j, k][1] - laws[i, k][1])),
+        )
+        for k in range(K)
+        for j in range(K)
+        for i in range(K)
+    )
+
+
+def pair_ab_residual(model):
+    """max over pairs of |A - M C|, |B - M D|, M = Delta SV^{-1}."""
+    q, K, out = model["q"], model["K"], 0.0
+    for j in range(K):
+        for k in range(K):
+            F, SW = model["F"][j][k], model["SW"][j][k]
+            M = SW[:q, q:] @ np.linalg.inv(SW[q:, q:])
+            out = max(
+                out,
+                np.max(np.abs(F[:q, :q] - M @ F[q:, :q])),
+                np.max(np.abs(F[:q, q:] - M @ F[q:, q:])),
+            )
+    return out
+
+
+def pair_block_max(model, which):
+    """max over pairs of |A| (which="A") or |C| (which="C")."""
+    q = model["q"]
+    sl = {"A": (slice(0, q), slice(0, q)), "C": (slice(q, None), slice(0, q))}[which]
+    K = model["K"]
+    return max(np.max(np.abs(model["F"][j][k][sl])) for j in range(K) for k in range(K))
+
+
+def one_step_backward_summary(m2, ys, gpair):
+    """E[X_n | r_n = j, y_{n:N}] on a centered CGOMSM2 by the one-step backward
+    summary (eq. (backward-summary) of the paper):
+    sum_k p(r_{n+1} = k | r_n = j, y_{1:N}) [M_j y_n + W_jk (y_{n+1} - (C_k M_j + D_k) y_n)].
+    Rows n = 1..N-2 (0-based) are filled: n = 0 sits on the moment-matched
+    initial law, which is not slaved."""
+    b, K, q, s = m2["blocks"], m2["K"], m2["q"], m2["s"]
+    M, Gam = _pair_slaving(m2)
+    ys = np.asarray(ys, float).reshape(-1, s)
+    out = np.zeros((ys.shape[0] - 1, K, q))
+    for n in range(1, ys.shape[0] - 1):
+        y0, y1 = ys[n].reshape(s, 1), ys[n + 1].reshape(s, 1)
+        for j in range(K):
+            acc = np.zeros((q, 1))
+            for k in range(K):
+                S = b["C"][k] @ Gam[j] @ b["C"][k].T + b["SV"][k]
+                W = Gam[j] @ b["C"][k].T @ np.linalg.inv(S)
+                nu = y1 - (b["C"][k] @ M[j] + b["D"][k]) @ y0
+                acc += gpair[n, j, k] * (M[j] @ y0 + W @ nu)
+            out[n, j] = acc.ravel() / gpair[n, j].sum()
+    return out
+
+
+# ---------------------------------------------------------------------------
 # experiments
 # ---------------------------------------------------------------------------
 def _med_max(vals):
@@ -1173,6 +1547,157 @@ def exp_off_domain(etas=(0.02, 0.08, 0.3), n_seeds=20):
     return meds, slope
 
 
+S12_SHAPES = ((1, 1), (2, 1), (2, 2))
+S12_N = 8  # 2^8 = 256 paths per exact evaluation
+S12_SEEDS = (1, 2, 3)
+
+
+def _inv_or_range(vals):
+    """'<= max' when every value is at machine precision, else 'min-max'."""
+    vals = np.asarray(vals)
+    if vals.max() < 1e-12:
+        return f"<= {vals.max():.1e}"
+    return f"{vals.min():.2g}-{vals.max():.2g}"
+
+
+def _perturbed(model, ys, rng, *blocks):
+    """Exact quantities after standard normal additions on the observation
+    blocks ys[a:b], all other observations fixed."""
+    y = ys.copy()
+    for a, b in blocks:
+        y[a:b] += rng.normal(size=y[a:b].shape)
+    return exact_pair_quantities(model, y)
+
+
+def exp_time_reversal():
+    """S12: the two exact smoothers as mirror filters -- dependence table,
+    one-step backward summary, reversed transitions, mixture caveat, the
+    [Abb15] pair-dependent model, and the K=1 memory mirror."""
+    rng = np.random.default_rng(SEED0 + 12)
+    N, n0 = S12_N, 4
+    fams = ("C==0", "C==0, A==0", "AB")
+    rows = (
+        ("x_n(r_n)        vs y_{1:n-1}       ", "past"),
+        ("x_n(r_n)        vs y_{n+1:N}       ", "future"),
+        ("x_n(r_{n-1:n})  vs all but y_{n-1:n}", "pair_prev"),
+        ("x_n(r_{n:n+1})  vs all but y_{n:n+1}", "pair_next"),
+    )
+    tab = {(f, r): [] for f in fams for _, r in rows}
+    onestep, models = [], []
+    for q, s in S12_SHAPES:
+        fam_models = {
+            "C==0": random_cgomsm1(rng, 2, q, s, memory=True),
+            "C==0, A==0": random_cgomsm1(rng, 2, q, s, memory=False),
+            "AB": random_cgomsm2(rng, 2, q, s),
+        }
+        models.append(fam_models)
+        for f, m in fam_models.items():
+            for sd in S12_SEEDS:
+                ys = simulate_pair(m, N, SEED0 + sd)
+                e = exact_pair_quantities(m, ys)
+                e_past = _perturbed(m, ys, rng, (0, n0))
+                e_fut = _perturbed(m, ys, rng, (n0 + 1, N))
+                e_prev = _perturbed(m, ys, rng, (0, n0 - 1), (n0 + 1, N))
+                e_next = _perturbed(m, ys, rng, (0, n0), (n0 + 2, N))
+                tab[f, "past"].append(_rel(e_past["smo_reg"][n0], e["smo_reg"][n0]))
+                tab[f, "future"].append(_rel(e_fut["smo_reg"][n0], e["smo_reg"][n0]))
+                tab[f, "pair_prev"].append(
+                    _rel(e_prev["pair_next"][n0 - 1], e["pair_next"][n0 - 1])
+                )
+                tab[f, "pair_next"].append(_rel(e_next["pair_cur"][n0], e["pair_cur"][n0]))
+                if f == "AB":
+                    bs = one_step_backward_summary(m, ys, e["gpair"])
+                    onestep.append(_rel(bs[1:], e["smo_reg"][1 : N - 1]))
+    print(
+        f"S12 time reversal (random models, K=2, (q,s) in {list(S12_SHAPES)}, N={N},"
+        f" {len(S12_SEEDS)} seeds): relative change of an exact smoothed mean"
+    )
+    print(f"  {'mean / perturbed block':38s}" + "".join(f"{f:>16s}" for f in fams))
+    for label, r in rows:
+        print(f"  {label:38s}" + "".join(f"{_inv_or_range(tab[f, r]):>16s}" for f in fams))
+    print(f"  AB: per-regime smoothed mean = one-step backward summary: max {max(onestep):.1e}")
+
+    # reversed transitions (first transition, where the Gaussian reversal is exact)
+    c_rev = [pair_block_max(time_reversal(fm["AB"]), "C") for fm in models]
+    a_rev = [pair_block_max(time_reversal(fm["AB"]), "A") for fm in models]
+    st = {f: [reversed_regime_state_gap(fm[f]) for fm in models] for f in fams}
+    ab_rev = {f: [pair_ab_residual(time_reversal(fm[f])) for fm in models] for f in fams[:2]}
+    print(
+        f"  reversal of AB: max|C~| {max(c_rev):.1e}  max|A~| {max(a_rev):.1e};"
+        f" regime transition vs hidden state {_inv_or_range(st['AB'])}"
+    )
+    print(
+        f"  reversal of C==0: regime transition vs hidden state {_inv_or_range(st['C==0'])}"
+        f" (A==0: {_inv_or_range(st['C==0, A==0'])}); AB residual"
+        f" {_inv_or_range(ab_rev['C==0'])} (A==0: {_inv_or_range(ab_rev['C==0, A==0'])})"
+    )
+
+    # mixture caveat: filter of the Gaussian reversal vs exact per-regime smoother
+    for K in (1, 2):
+        gaps = []
+        for i, (q, s) in enumerate(S12_SHAPES):
+            m = random_cgomsm2(rng, 1, q, s) if K == 1 else models[i]["AB"]
+            rv = time_reversal(m)
+            for sd in S12_SEEDS:
+                ys = simulate_pair(m, N, SEED0 + sd)
+                e, er = exact_pair_quantities(m, ys), exact_pair_quantities(rv, ys[::-1])
+                gaps.append(_rel(er["filt_reg"][::-1][1:], e["smo_reg"][1:]))
+        print(f"  Gaussian reversal, K={K}: reversed filter vs smoother, max {max(gaps):.1e}")
+
+    # the [Abb15] pair-dependent CGOMSM1 matched to AB (Remark rem:pairmodel)
+    g_reg, g_filt, g_naive, g_gap = [], [], [], []
+    for fm in models:
+        pair, m2 = abb15_pair_model(fm["AB"])
+        M, _ = _pair_slaving(m2)
+        gaps = []
+        for sd in S12_SEEDS:
+            ys = simulate_pair(m2, N, SEED0 + sd)
+            e2, ep = exact_pair_quantities(m2, ys), exact_pair_quantities(pair, ys)
+            naive = np.array(
+                [
+                    sum(e2["pi"][n, k] * (M[k] @ ys[n].reshape(-1, 1)).ravel() for k in range(2))
+                    for n in range(N)
+                ]
+            )
+            g_reg.append(_rel(ep["pi"], e2["pi"]))
+            g_filt.append(_rel(ep["Exf"][1:], e2["Exf"][1:]))
+            g_naive.append(_rel(ep["Ex"][1:], naive[1:]))
+            gaps.append(_rel(ep["Ex"][1:-1], e2["Ex"][1:-1]))
+        g_gap.append(np.median(gaps))
+    print(
+        f"  [Abb15] pair model vs AB: smoothed regimes {max(g_reg):.1e}, filter"
+        f" {max(g_filt):.1e}; its smoother = naive read-out {max(g_naive):.1e};"
+        f" gap to the AB smoother (medians) {min(g_gap):.2f}-{max(g_gap):.2f}"
+    )
+
+    # K=1 memory mirror (Remark rem:memory-mirror): stationary law only
+    F = np.array([[0.5, 0.0], [0.5, 0.3]])
+    for tag, S0 in (
+        ("stationary S_Z1 = I     ", np.eye(2)),
+        ("S_Z1 = diag(2, 0.5)    ", np.diag([2.0, 0.5])),
+    ):
+        m = dict(
+            K=1,
+            q=1,
+            s=1,
+            F=[[F]],
+            SW=[[np.eye(2) - F @ F.T]],
+            P=np.array([[1.0]]),
+            pi0=np.array([1.0]),
+            S0=[S0],
+        )
+        ys = simulate_pair(m, 10, 3)
+        e = exact_pair_quantities(m, ys)
+        yp, yf = ys.copy(), ys.copy()
+        yp[:5] += 1.0  # past y_{1:n-1}, n = 6
+        yf[7:] += 1.0  # far future y_{n+2:N}
+        ep, ef = exact_pair_quantities(m, yp), exact_pair_quantities(m, yf)
+        print(
+            f"  K=1 memory mirror, {tag}: filter vs past {_rel(ep['Exf'][5], e['Exf'][5]):.1e},"
+            f" smoother vs far future {_rel(ef['Ex'][5], e['Ex'][5]):.2g}"
+        )
+
+
 def main():
     print(f"[smoothing_exactness] N={N_STEPS}, {N_SEEDS} seeds, ground truth K^N path smoother\n")
     exact_ab = exp_ab_gauge()
@@ -1194,6 +1719,8 @@ def main():
     exp_mixed()
     print()
     exp_matrix_cross_annihilation()
+    print()
+    exp_time_reversal()
 
 
 if __name__ == "__main__":
