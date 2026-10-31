@@ -339,13 +339,14 @@ def constant_second_order_model(p_switch=0.10):
     )
 
 
-def cross_annihilation_model(annihilate=True, p_switch=0.10):
+def cross_annihilation_model(annihilate=True, p_switch=0.10, c2=None):
     """E10: q=2, s=1, K=2. Memories N_j = A_j - M_j C_j = e_2 v_j^T (rank 1,
     nonzero) at both regimes. With ``annihilate=True`` the observation rows
     are C_k = [c_k, 0], so C_k N_j = 0 for every pair (j, k): the model is
     outside {C==0} U {A==MC} but inside the cross-annihilation family. With
     ``annihilate=False`` the rows become C_k = [c_k, 0.3] (same memories):
-    C_k N_j != 0 and GPB2 is biased."""
+    C_k N_j != 0 and GPB2 is biased. ``c2`` overrides the second row entry
+    (a continuous violation of the cross-annihilation, S13e)."""
     from prg.classes.FMatrix import FMatrix as _FM
     from prg.classes.NoiseCovariance import GSSNoiseCovariance as _NC
 
@@ -354,7 +355,8 @@ def cross_annihilation_model(annihilate=True, p_switch=0.10):
     SV = [np.array([[0.20]]), np.array([[0.60]])]
     M = [np.array([[0.6], [-0.3]]), np.array([[-0.5], [0.4]])]
     D = [np.array([[0.50]]), np.array([[0.50]])]
-    c2 = 0.0 if annihilate else 0.3
+    if c2 is None:
+        c2 = 0.0 if annihilate else 0.3
     C = [np.array([[0.5, c2]]), np.array([[0.3, c2]])]
     N = [np.array([[0.0, 0.0], [0.4, 0.5]]), np.array([[0.0, 0.0], [-0.3, 0.6]])]
     A = [M[k] @ C[k] + N[k] for k in range(K)]

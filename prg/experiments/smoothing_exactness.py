@@ -1,6 +1,6 @@
 """Machine-precision checks of the exact fixed-interval smoothers (smoothing paper).
 
-Twelve experiments back the numbers quoted in the exact-smoothing paper
+Thirteen experiments back the numbers quoted in the exact-smoothing paper
 (docs/exact-smoothing):
 
 S1  Smoothed regime posterior, exact and O(N K^2) on both families: the HMM
@@ -86,6 +86,30 @@ S12 Time reversal (random models, K=2, (q,s) in {(1,1),(2,1),(2,2)}): the
     smoother.  The stationary K=1 example with state memory realizes the
     mirror of memory for its stationary law only.
 
+S13 Classical collapsed smoothers (exactness domains, the analogue for the
+    smoothers of the IMM/GPB2 theorems of the exactness paper).  A collapsed
+    RTS smoother is fixed by its forward bank (GPB2 = Kim filter, or IMM)
+    and its backward regime weights (Kim's p(r_n | r_{n+1}, y_{1:n}), or the
+    pair-likelihood recursion).  Kim's smoother and the IMM-RTS (Kim
+    weights) are exact on {C==0, A==0} only -- the intersection of the two
+    branches -- with exact regimes on all of {C==0} (the kernel ignores the
+    departure regime) but a biased state as soon as A != 0, equal dynamics
+    included; the IMM pair-RTS likewise; the GPB2 pair-RTS is exact on
+    {A==MC} (S7), and HBH nowhere (inapplicable where F_r is singular).
+    Random matrix models (K <= 3, q = 2, s <= 2) of each family confirm the
+    map.  The K^2 embedding of an AB model (Section V-E of the exactness
+    paper) transports the exact filter and the smoothed regimes to machine
+    precision, and Kim / IMM-RTS with K^2 modes realize the exact smoother of
+    the embedded model -- which misses the CGOMSM2 smoother by the order of
+    the whole smoothing gain: the K^2 device that makes the IMM exact for
+    filtering does not carry over to smoothing.  The bound is reachable,
+    though: dropping the backward state recursion (one-step retrodiction of
+    the filtered pair summary by y_{n+1}, pair-smoothed weights) gives a
+    collapsed smoother exact -- mean, variance and regimes -- on the whole
+    GPB2 domain with the GPB2 bank (cross-annihilation family, q > 1
+    included, where S11 found no state smoother) and on {C==0} with the IMM
+    bank: the domain of its forward filter, the terminal-point bound.
+
 Ground truth is the exact K^N path smoother: one conditional pair Kalman
 filter + RTS smoother per regime path, the paths weighted by their exact
 posterior p(path | y_{1:N}).  Errors are normalized sup-norm deviations,
@@ -102,6 +126,9 @@ from itertools import product
 
 import numpy as np
 
+from prg.classes.FMatrix import FMatrix
+from prg.classes.GSSParams import GSSParams
+from prg.classes.NoiseCovariance import GSSNoiseCovariance
 from prg.experiments.cns_exactness import (
     N_STEPS,
     SEED0,
@@ -119,7 +146,7 @@ from prg.experiments.reference_filters import (
     exact_mixture_filter,
     gpb2_filter,
 )
-from prg.experiments.study import _simulate
+from prg.experiments.study import _simulate, with_stationary_init
 
 N_SEEDS = 15  # exact path smoother costs K^N per seed -- keep moderate
 
@@ -830,6 +857,415 @@ def hbh_smoother(params, ys, diffuse=1e8, variant="pair"):
         mu_s[n] = w
         Ex[n] = w @ zsm[:, :q, 0]
     return Ex, mu_s
+
+
+# ---------------------------------------------------------------------------
+# S13: classical collapsed smoothers -- exactness domains
+# ---------------------------------------------------------------------------
+def imm_pair_bank(params, ys):
+    """Pairwise IMM forward pass keeping the per-regime PAIR summaries.
+
+    Same recursion as pairwise_imm_bank (mixing, per-regime prediction, exact
+    y update), returned in the layout of gpb2_bank: zs (N, K, dim, 1), Ps
+    (N, K, dim, dim), alpha (N, K) and the per-pair likelihood matrices A_n
+    (N-1, K, K), a_n(j,k) = p_jk N(y_{n+1}; prediction of the mode-j summary
+    through F_k) -- computed alongside, used only by the 'pair' weights.
+    Zero-probability arrivals (pair chains) keep their previous summary.
+    """
+    K, q, s = params.K, params.q, params.s
+    dim = q + s
+    ys = np.asarray(ys, float).reshape(-1, s)
+    N = ys.shape[0]
+    H = _obs_matrix(q, s)
+    F = [params.f_matrix.F(k) for k in range(K)]
+    b = [params.b(k).reshape(dim, 1) for k in range(K)]
+    SW = [params.noise_cov.Sigma_W(k) for k in range(K)]
+    zs = np.zeros((N, K, dim, 1))
+    Ps = np.zeros((N, K, dim, dim))
+    alpha = np.zeros((N, K))
+    la = np.zeros(K)
+    for k in range(K):
+        z, P, ll = _kalman_exact_y_update(
+            params.mu_z0(k).reshape(dim, 1), params.Sigma_z0(k), ys[0].reshape(s, 1), H
+        )
+        zs[0, k], Ps[0, k] = z, P
+        la[k] = np.log(params.pi0[k] + 1e-300) + ll
+    alpha[0] = np.exp(la - la.max())
+    alpha[0] /= alpha[0].sum()
+    A_n = np.zeros((N - 1, K, K))
+    for n in range(1, N):
+        y = ys[n].reshape(s, 1)
+        nla = np.full(K, -np.inf)
+        for k in range(K):
+            for j in range(K):
+                zpr = F[k] @ zs[n - 1, j] + b[k]
+                Ppr = F[k] @ Ps[n - 1, j] @ F[k].T + SW[k]
+                _, _, ll = _kalman_exact_y_update(zpr, Ppr, y, H)
+                A_n[n - 1, j, k] = params.P[j, k] * np.exp(ll)
+            w = alpha[n - 1] * params.P[:, k]
+            cbar = w.sum()
+            if cbar <= 0.0:
+                zs[n, k], Ps[n, k] = zs[n - 1, k], Ps[n - 1, k]
+                continue
+            w = w / cbar
+            z0 = sum(w[j] * zs[n - 1, j] for j in range(K))
+            P0 = sum(
+                w[j] * (Ps[n - 1, j] + (zs[n - 1, j] - z0) @ (zs[n - 1, j] - z0).T)
+                for j in range(K)
+            )
+            z, P, ll = _kalman_exact_y_update(F[k] @ z0 + b[k], F[k] @ P0 @ F[k].T + SW[k], y, H)
+            zs[n, k], Ps[n, k] = z, P
+            nla[k] = np.log(cbar) + ll
+        a = np.exp(nla - nla.max())
+        alpha[n] = a / a.sum()
+    return zs, Ps, alpha, A_n
+
+
+def collapsed_rts_smoother(params, ys, bank="gpb2", weights="kim"):
+    """Classical collapsed RTS smoother, parameterized by its two choices.
+
+    bank: the forward per-regime summaries -- 'gpb2' (the Kim filter: per-pair
+    update, collapse over the departure regime) or 'imm' (interacting
+    multiple model).  weights: the backward regime weights -- 'kim' (Kim,
+    J. Econometrics 60, 1994: p(r_n | r_{n+1}, y_{1:N}) is replaced by
+    p(r_n | r_{n+1}, y_{1:n}), so gam_n(j) = alpha_n(j) sum_k p_jk
+    gam_{n+1}(k) / (alpha_n P)(k)) or 'pair' (backward recursion on the pair
+    likelihoods a_n(j,k), as in S6/S7).  State: per pair (j, k) the RTS gain
+    G^{jk} = P_n(j) F_k^T (F_k P_n(j) F_k^T + SW_k)^{-1} applied to the
+    k-conditional smoothed summary, mixed over the arrival regime.
+    ('gpb2', 'kim') is Kim's smoother; ('imm', 'kim') the IMM forward
+    filtering / backward smoothing of the RTS type (cf. Nadarajah et al.,
+    IEEE TAES 48(3), 2012 -- our transcription, not checked against the
+    original); ('gpb2', 'pair') reproduces pair_rts_smoother (S7).
+    Returns the smoothed state mean (N, q) and regime posterior (N, K).
+    """
+    K, q, s = params.K, params.q, params.s
+    dim = q + s
+    ys_ = np.asarray(ys, float).reshape(-1, s)
+    N = ys_.shape[0]
+    F = [params.f_matrix.F(k) for k in range(K)]
+    b = [params.b(k).reshape(dim, 1) for k in range(K)]
+    SW = [params.noise_cov.Sigma_W(k) for k in range(K)]
+    zs, Ps, alpha, A_n = (gpb2_bank if bank == "gpb2" else imm_pair_bank)(params, ys_)
+    gam = np.zeros((N, K))
+    if weights == "pair":
+        beta = np.zeros((N, K))
+        beta[N - 1] = 1.0
+        for n in range(N - 2, -1, -1):
+            beta[n] = A_n[n] @ beta[n + 1]
+            beta[n] /= beta[n].max()
+        gam = alpha * beta
+        gam /= gam.sum(axis=1, keepdims=True)
+    else:
+        gam[N - 1] = alpha[N - 1]
+    Ex = np.zeros((N, q))
+    zsm = zs[N - 1].copy()  # (K, dim, 1) smoothed per-regime pair means
+    Ex[N - 1] = gam[N - 1] @ zsm[:, :q, 0]
+    for n in range(N - 2, -1, -1):
+        if weights == "pair":
+            xi = (alpha[n][:, None] * A_n[n]) * beta[n + 1][None, :]
+            xi /= xi.sum()
+        else:
+            pred = alpha[n] @ params.P
+            ratio = np.where(pred > 0, gam[n + 1] / np.maximum(pred, 1e-300), 0.0)
+            xi = alpha[n][:, None] * params.P * ratio[None, :]
+            gam[n] = xi.sum(axis=1)
+        new = np.zeros_like(zsm)
+        for j in range(K):
+            wj = xi[j].sum()
+            new[j] = zs[n, j]
+            if wj <= 1e-300:
+                continue
+            for k in range(K):
+                if xi[j, k] <= 0.0:
+                    continue
+                Ppred = F[k] @ Ps[n, j] @ F[k].T + SW[k]
+                G = Ps[n, j] @ F[k].T @ np.linalg.pinv(Ppred)
+                new[j] = new[j] + xi[j, k] / wj * (G @ (zsm[k] - F[k] @ zs[n, j] - b[k]))
+        zsm = new
+        Ex[n] = gam[n] @ zsm[:, :q, 0]
+    return Ex, gam
+
+
+def onestep_collapsed_smoother(params, ys, bank="gpb2"):
+    """Collapsed ONE-STEP smoother: no backward state recursion.
+
+    Per pair (j, k), the mode-j filtered pair summary at n (forward bank
+    'gpb2' or 'imm') is retrodicted by y_{n+1} through regime k --
+    E[x_n | j, k, y_{1:n+1}] by one Kalman step on (z_n, y_{n+1}) -- and the
+    pair summaries are mixed with the smoothed pair weights of the
+    pair-likelihood backward recursion; the filtered summary at n = N.  On the
+    cross-annihilation family C_k (A_j - M_j C_j) = 0 the observations beyond
+    y_{n+1} carry nothing on x_n (its influence stays in the range of the
+    memories, which every C_l annihilates), and the merged per-regime summary
+    updates exactly (the components differ in ker C_k only): with the GPB2
+    bank the smoother is exact on the whole GPB2 domain, with the IMM bank on
+    {C==0} -- each time the domain of its forward filter, the bound set by the
+    terminal point (S13d).  Returns (Ex, Vx, gam).
+    """
+    K, q, s = params.K, params.q, params.s
+    dim = q + s
+    ys_ = np.asarray(ys, float).reshape(-1, s)
+    N = ys_.shape[0]
+    H = _obs_matrix(q, s)
+    F = [params.f_matrix.F(k) for k in range(K)]
+    b = [params.b(k).reshape(dim, 1) for k in range(K)]
+    SW = [params.noise_cov.Sigma_W(k) for k in range(K)]
+    zs, Ps, alpha, A_n = (gpb2_bank if bank == "gpb2" else imm_pair_bank)(params, ys_)
+    beta = np.zeros((N, K))
+    beta[N - 1] = 1.0
+    for n in range(N - 2, -1, -1):
+        beta[n] = A_n[n] @ beta[n + 1]
+        beta[n] /= beta[n].max()
+    gam = alpha * beta
+    gam /= gam.sum(axis=1, keepdims=True)
+    Ex = np.zeros((N, q))
+    Vx = np.zeros((N, q, q))
+    for n in range(N - 1):
+        xi = (alpha[n][:, None] * A_n[n]) * beta[n + 1][None, :]
+        xi /= xi.sum()
+        y1 = ys_[n + 1].reshape(s, 1)
+        means = np.zeros((K, K, q))
+        covs = np.zeros((K, K, q, q))
+        for j in range(K):
+            for k in range(K):
+                Pzy = Ps[n, j] @ F[k].T @ H.T  # Cov(z_n, y_{n+1} | j, k)
+                S = H @ (F[k] @ Ps[n, j] @ F[k].T + SW[k]) @ H.T
+                G = Pzy @ np.linalg.inv(S)
+                m = zs[n, j] + G @ (y1 - H @ (F[k] @ zs[n, j] + b[k]))
+                means[j, k] = m[:q, 0]
+                covs[j, k] = (Ps[n, j] - G @ Pzy.T)[:q, :q]
+                Ex[n] += xi[j, k] * means[j, k]
+        for j in range(K):
+            for k in range(K):
+                d = means[j, k] - Ex[n]
+                Vx[n] += xi[j, k] * (covs[j, k] + np.outer(d, d))
+    Ex[N - 1] = gam[N - 1] @ zs[N - 1, :, :q, 0]
+    for j in range(K):
+        d = zs[N - 1, j, :q, 0] - Ex[N - 1]
+        Vx[N - 1] += gam[N - 1, j] * (Ps[N - 1, j, :q, :q] + np.outer(d, d))
+    return Ex, Vx, gam
+
+
+def fixed_lag_collapsed_smoother(params, ys, L, bank="gpb2"):
+    """Collapsed fixed-lag-L smoother (L = 1 is onestep_collapsed_smoother).
+
+    For each n, every regime window (r_n, ..., r_m), m = min(n + L, N), is
+    enumerated (K^{L+1} windows): an augmented Kalman filter started from the
+    mode-r_n filtered pair summary of the forward bank carries (z_n, z_t)
+    through the window and retrodicts x_n from y_{n+1:m}; the window is
+    weighted by alpha_n(r_n) prod p p(y | window) beta_m(r_m), beta from the
+    pair-likelihood backward recursion.  The observations beyond y_m enter
+    through the regime weights only.  Exact on the GPB2 domain for every L
+    (the argument of the one-step smoother), it recovers more of the future
+    off the domain as L grows; cost O(N K^{L+1}).  Returns (Ex, Vx).
+    """
+    K, q, s = params.K, params.q, params.s
+    dim = q + s
+    ys_ = np.asarray(ys, float).reshape(-1, s)
+    N = ys_.shape[0]
+    H = _obs_matrix(q, s)
+    F = [params.f_matrix.F(k) for k in range(K)]
+    b = [params.b(k).reshape(dim, 1) for k in range(K)]
+    SW = [params.noise_cov.Sigma_W(k) for k in range(K)]
+    zs, Ps, alpha, A_n = (gpb2_bank if bank == "gpb2" else imm_pair_bank)(params, ys_)
+    beta = np.zeros((N, K))
+    beta[N - 1] = 1.0
+    for n in range(N - 2, -1, -1):
+        beta[n] = A_n[n] @ beta[n + 1]
+        beta[n] /= beta[n].max()
+    Ex = np.zeros((N, q))
+    Vx = np.zeros((N, q, q))
+    for n in range(N):
+        m = min(n + L, N - 1)
+        lws, mus, covs = [], [], []
+        for win in product(range(K), repeat=m - n + 1):
+            j = win[0]
+            mu0, zt = zs[n, j].copy(), zs[n, j].copy()
+            P00, P0t, Ptt = Ps[n, j].copy(), Ps[n, j].copy(), Ps[n, j].copy()
+            lw = np.log(alpha[n, j] + 1e-300)
+            for t, k in enumerate(win[1:]):
+                lw += np.log(params.P[win[t], k] + 1e-300)
+                zt = F[k] @ zt + b[k]
+                Ptt = F[k] @ Ptt @ F[k].T + SW[k]
+                P0t = P0t @ F[k].T
+                S = H @ Ptt @ H.T
+                Si = np.linalg.inv(S)
+                e = ys_[n + 1 + t].reshape(s, 1) - H @ zt
+                K0 = P0t @ H.T @ Si
+                Kt = Ptt @ H.T @ Si
+                mu0 = mu0 + K0 @ e
+                zt = zt + Kt @ e
+                P00 = P00 - K0 @ S @ K0.T
+                P0t = P0t - K0 @ S @ Kt.T
+                Ptt = Ptt - Kt @ S @ Kt.T
+                lw -= 0.5 * float((e.T @ Si @ e)[0, 0] + np.log(np.linalg.det(2 * np.pi * S)))
+            lws.append(lw + np.log(beta[m, win[-1]] + 1e-300))
+            mus.append(mu0[:q, 0])
+            covs.append(P00[:q, :q])
+        w = np.exp(np.array(lws) - max(lws))
+        w /= w.sum()
+        Ex[n] = w @ np.array(mus)
+        for wi, mu, P in zip(w, mus, covs):
+            d = mu - Ex[n]
+            Vx[n] += wi * (P + np.outer(d, d))
+    return Ex, Vx
+
+
+CLASSICAL_SMOOTHERS = (
+    ("Kim (GPB2, Kim weights)", "gpb2", "kim"),
+    ("IMM-RTS (IMM, Kim weights)", "imm", "kim"),
+    ("GPB2 pair-RTS (S7)", "gpb2", "pair"),
+    ("IMM pair-RTS", "imm", "pair"),
+)
+
+
+def memoryless_c0_model():
+    """S13 gauge: the CGOMSM1 gauge without state memory (A = 0, C = 0), i.e.
+    the intersection {C==0} n {A==MC} of the two branches."""
+    return _params(
+        A=[0.0, 0.0],
+        B=[0.10, 0.10],
+        C=[0.0, 0.0],
+        D=[0.50, 0.50],
+        SU=[0.40, 0.35],
+        Dt=[0.15, -0.20],
+        SV=[0.20, 0.60],
+        p_switch=0.10,
+    )
+
+
+def _gss(P, A, B, C, D, SU, Dt, SV, pi0=None, mu0=None, S0=None, b=None):
+    K, q, s = len(A), A[0].shape[0], D[0].shape[0]
+    return GSSParams(
+        K=K,
+        q=q,
+        s=s,
+        P=P,
+        f_matrix=FMatrix(K, q, s, A, B, C, D),
+        noise_cov=GSSNoiseCovariance(K, q, s, SU, Dt, SV),
+        pi0=pi0,
+        mu_z0_list=mu0 if mu0 is not None else [np.zeros((q + s, 1))] * K,
+        Sigma_z0_list=S0 if S0 is not None else [np.eye(q + s)] * K,
+        b_list=b,
+    )
+
+
+def random_family_params(rng, K, q, s, family):
+    """Random stable GSSParams (stationary init) of a family: 'C0A0' (C = A =
+    0), 'C0mem' (C = 0, random memory A), 'AMC' (A = M C, B free) or 'AB'."""
+    while True:
+        A, B, C, D, SU, Dt, SV = [], [], [], [], [], [], []
+        for _ in range(K):
+            SVk = _rand_spd(rng, s, 0.3)
+            Mk = rng.normal(size=(q, s)) * 0.6
+            Gk = _rand_spd(rng, q, 0.3)
+            Ck = np.zeros((s, q)) if family.startswith("C0") else rng.normal(size=(s, q)) * 0.5
+            Dk = rng.normal(size=(s, s)) * 0.4
+            if family == "C0A0":
+                Ak = np.zeros((q, q))
+            elif family == "C0mem":
+                Ak = rng.normal(size=(q, q)) * 0.35
+            else:
+                Ak = Mk @ Ck
+            Bk = Mk @ Dk if family == "AB" else rng.normal(size=(q, s)) * 0.4
+            A.append(Ak)
+            B.append(Bk)
+            C.append(Ck)
+            D.append(Dk)
+            SU.append(Gk + Mk @ SVk @ Mk.T)
+            Dt.append(Mk @ SVk)
+            SV.append(SVk)
+        if _contracting(A, B, C, D):
+            return with_stationary_init(_gss(_sticky(K), A, B, C, D, SU, Dt, SV))
+
+
+def random_cross_annihilation_params(rng, K, q=3, s=1):
+    """Random stable model of the cross-annihilation family outside the union:
+    rows C_k = [C0_k, 0] (s x q), memories N_k with zero first s rows (so
+    C_l N_k = 0, N_k != 0), B free."""
+    while True:
+        A, B, C, D, SU, Dt, SV = [], [], [], [], [], [], []
+        for _ in range(K):
+            SVk = _rand_spd(rng, s, 0.3)
+            Mk = rng.normal(size=(q, s)) * 0.6
+            Gk = _rand_spd(rng, q, 0.3)
+            Ck = np.zeros((s, q))
+            Ck[:, :s] = rng.normal(size=(s, s)) * 0.5
+            Nk = np.zeros((q, q))
+            Nk[s:, :] = rng.normal(size=(q - s, q)) * 0.4
+            A.append(Mk @ Ck + Nk)
+            B.append(rng.normal(size=(q, s)) * 0.4)
+            C.append(Ck)
+            D.append(rng.normal(size=(s, s)) * 0.4)
+            SU.append(Gk + Mk @ SVk @ Mk.T)
+            Dt.append(Mk @ SVk)
+            SV.append(SVk)
+        if _contracting(A, B, C, D):
+            return with_stationary_init(_gss(_sticky(K), A, B, C, D, SU, Dt, SV))
+
+
+def _blocks(p):
+    fm, nc, K = p.f_matrix, p.noise_cov, p.K
+    return (
+        [fm.A(k) for k in range(K)],
+        [fm.B(k) for k in range(K)],
+        [fm.C(k) for k in range(K)],
+        [fm.D(k) for k in range(K)],
+        [nc.Sigma_U(k) for k in range(K)],
+        [nc.Delta(k) for k in range(K)],
+        [nc.Sigma_V(k) for k in range(K)],
+    )
+
+
+def slaved_init(params):
+    """The same model with a slaved initial law: Y_1 | r keeps its law and
+    X_1 | r, Y_1 ~ N(M_r Y_1 + c_r, Gam_r) (the hypothesis of Section V-E of
+    the exactness paper)."""
+    K, q = params.K, params.q
+    M, Gam, c = _slaving(params)
+    mu0, S0 = [], []
+    for k in range(K):
+        Syy = params.Sigma_z0(k)[q:, q:]
+        my = params.mu_z0(k).reshape(-1, 1)[q:]
+        S0.append(np.block([[Gam[k] + M[k] @ Syy @ M[k].T, M[k] @ Syy], [Syy @ M[k].T, Syy]]))
+        mu0.append(np.vstack([M[k] @ my + c[k], my]))
+    b = [params.b(k) for k in range(K)]
+    return _gss(params.P, *_blocks(params), pi0=params.pi0, mu0=mu0, S0=S0, b=b)
+
+
+def k2_embedding(params):
+    """Section V-E of the exactness paper: the white-noise CGOMSM1 on the pair
+    chain (r_{n-1}, r_n) (index j K + k) with blocks C' = A' = 0,
+    D'_jk = D_k + C_k M_j, B' = M_k D', b'^Y = C_k c_j + b^Y_k,
+    b'^X = c_k + M_k b'^Y, SV' = SV_k + C_k Gam_j C_k^T, Delta' = M_k SV',
+    SU' = Gam_k + M_k SV' M_k^T.  For a slaved AB model it has the same
+    (R, Y) law and the same exact filter; the dummy r_0 is uniform."""
+    K, q, s = params.K, params.q, params.s
+    M, Gam, c = _slaving(params)
+    _, _, C, D, _, _, SV = _blocks(params)
+    bY = [params.b(k).reshape(q + s, 1)[q:] for k in range(K)]
+    A2, B2, C2, D2, SU2, Dt2, SV2, b2, mu0, S0 = [], [], [], [], [], [], [], [], [], []
+    P2 = np.zeros((K * K, K * K))
+    pi2 = np.zeros(K * K)
+    for j in range(K):
+        for k in range(K):
+            Dp = D[k] + C[k] @ M[j]
+            SVp = SV[k] + C[k] @ Gam[j] @ C[k].T
+            bYp = C[k] @ c[j] + bY[k]
+            A2.append(np.zeros((q, q)))
+            B2.append(M[k] @ Dp)
+            C2.append(np.zeros((s, q)))
+            D2.append(Dp)
+            SV2.append(SVp)
+            Dt2.append(M[k] @ SVp)
+            SU2.append(Gam[k] + M[k] @ SVp @ M[k].T)
+            b2.append(np.vstack([c[k] + M[k] @ bYp, bYp]))
+            mu0.append(params.mu_z0(k).reshape(-1, 1))
+            S0.append(params.Sigma_z0(k))
+            pi2[j * K + k] = params.pi0[k] / K
+            P2[j * K + k, k * K : (k + 1) * K] = params.P[k]
+    return _gss(P2, A2, B2, C2, D2, SU2, Dt2, SV2, pi0=pi2, mu0=mu0, S0=S0, b=b2)
 
 
 # ---------------------------------------------------------------------------
@@ -1698,6 +2134,253 @@ def exp_time_reversal():
         )
 
 
+S13_N_K2 = 6  # the K^2 embedding has 4^N paths -- keep its records short
+
+
+def _hbh_or_nan(params, ys, Ex_s, gam_ex):
+    """HBH errors (state, regime); NaN where the scheme is inapplicable
+    (singular pair dynamics, e.g. A = 0 or AB)."""
+    try:
+        Ex_h, mu_h = hbh_smoother(params, ys)
+    except np.linalg.LinAlgError:
+        return np.nan, np.nan
+    return _rel(Ex_h, Ex_s), _rel(mu_h, gam_ex)
+
+
+def exp_classical_smoothers():
+    """S13: exactness domains of the classical collapsed smoothers (Kim,
+    IMM-RTS, pair-RTS on both banks, HBH), on the scalar gauges and on random
+    matrix models of each family, and the K^2 embedding of Section V-E of the
+    exactness paper (filter transported, smoother not), and the one-step
+    collapsed smoother that reaches the domain of its forward filter."""
+    gauges = (
+        ("AB (C=0.4)        ", lambda: ab_model(0.4, dB=0.0)),
+        ("{A==MC} \\ AB      ", lambda: ab_model(0.4, dB=0.15)),
+        ("{C==0}, memory    ", cgo_memory_model),
+        ("{C==0}, equal A   ", equal_dynamics_c0_model),
+        ("{C==0, A==0}      ", memoryless_c0_model),
+        ("cross-annih. q=2  ", lambda: cross_annihilation_model(annihilate=True)),
+        ("off union (eps=.08)", lambda: off_union_model(0.4, 0.08)),
+        ("mixed (A0=0.4)    ", lambda: mixed_branch_model(0.4, 0.7)),
+    )
+    labels = [lab for lab, _, _ in CLASSICAL_SMOOTHERS] + ["HBH two-filter (S9)"]
+    lags = ("fixed-lag L=1, GPB2", "fixed-lag L=1, IMM")
+    print("S13a classical collapsed smoothers, scalar gauges -- median state | regime error:")
+    print("    " + " " * 20 + "".join(f"{lab[:26]:>28s}" for lab in labels))
+    table = {}
+    for name, mk in gauges:
+        p = mk()
+        ex = {lab: [] for lab in labels}
+        rg = {lab: [] for lab in labels}
+        for sd in range(N_SEEDS):
+            _, _, ys = _simulate(p, N_STEPS, seed=SEED0 + sd)
+            Ex_s, _, gam_ex = exact_path_smoother(p, ys)
+            for lab, bank, w in CLASSICAL_SMOOTHERS:
+                Ex, gam = collapsed_rts_smoother(p, ys, bank, w)
+                ex[lab].append(_rel(Ex, Ex_s))
+                rg[lab].append(_rel(gam, gam_ex))
+            eh = _hbh_or_nan(p, ys, Ex_s, gam_ex)
+            ex[labels[-1]].append(eh[0])
+            rg[labels[-1]].append(eh[1])
+            for lab, bank in zip(lags, ("gpb2", "imm")):
+                Ex, _, gam = onestep_collapsed_smoother(p, ys, bank)
+                ex.setdefault(lab, []).append(_rel(Ex, Ex_s))
+                rg.setdefault(lab, []).append(_rel(gam, gam_ex))
+        table[name.strip()] = {lab: (np.median(ex[lab]), np.median(rg[lab])) for lab in ex}
+        cells = "".join(
+            f"{'n/a (singular F)':>28s}"
+            if np.isnan(ex[lab][0])
+            else f"{np.median(ex[lab]):>19.1e} |{np.median(rg[lab]):>7.0e}"
+            for lab in labels
+        )
+        cells += "".join(f"{np.median(ex[lab]):>12.1e}" for lab in lags)
+        print(f"    {name:20s}{cells}")
+    print("    (last two columns: state error of the fixed-lag smoother of S13d/f, L=1)")
+
+    rng = np.random.default_rng(SEED0 + 13)
+    print("S13b random models (6 per row), max over models of max(state, regime) error:")
+    for fam in ("C0A0", "C0mem", "AMC", "AB"):
+        for K, q, s, N in ((2, 2, 1, 9), (2, 2, 2, 9), (3, 2, 1, 6)):
+            err = {lab: [] for lab in labels}
+            for sd in range(6):
+                p = random_family_params(rng, K, q, s, fam)
+                _, _, ys = _simulate(p, N, seed=SEED0 + 1300 + sd)
+                Ex_s, _, gam_ex = exact_path_smoother(p, ys)
+                for lab, bank, w in CLASSICAL_SMOOTHERS:
+                    Ex, gam = collapsed_rts_smoother(p, ys, bank, w)
+                    err[lab].append(max(_rel(Ex, Ex_s), _rel(gam, gam_ex)))
+                err[labels[-1]].append(max(_hbh_or_nan(p, ys, Ex_s, gam_ex)))
+            cells = "".join(
+                f"{'n/a':>14s}" if np.all(np.isnan(err[lab])) else f"{np.nanmax(err[lab]):>14.1e}"
+                for lab in labels
+            )
+            print(f"    {fam:6s} K={K} q={q} s={s}{cells}")
+
+    print(
+        f"S13c K^2 embedding of a slaved AB model (Section V-E), N={S13_N_K2},"
+        " 5 records per model -- median (max):"
+    )
+    rows = (
+        ("K^2-mode IMM filter  vs CGOMSM2 exact filter", "filt"),
+        ("K^2 smoothed regimes vs CGOMSM2 smoothed regimes", "reg"),
+        ("Kim, K^2 modes       vs K^2 model exact smoother", "kim2"),
+        ("IMM-RTS, K^2 modes   vs K^2 model exact smoother", "imm2"),
+        ("K^2 model exact smoother vs CGOMSM2 exact smoother", "gap"),
+        ("IMM-RTS, K modes     vs CGOMSM2 exact smoother", "immK"),
+        ("smoothing gain |filtered - smoothed| (scale)", "gain"),
+    )
+    out = {}
+    for name, mk in (
+        ("AB gauge", lambda: ab_model(0.4, dB=0.0)),
+        ("random AB K=2 q=2 s=1", lambda: random_family_params(rng, 2, 2, 1, "AB")),
+        ("random AB K=2 q=2 s=2", lambda: random_family_params(rng, 2, 2, 2, "AB")),
+    ):
+        p = slaved_init(mk())
+        p2 = k2_embedding(p)
+        e = {key: [] for _, key in rows}
+        for sd in range(5):
+            _, _, ys = _simulate(p, S13_N_K2, seed=SEED0 + 1350 + sd)
+            Ex_f, _, _ = exact_mixture_filter(p, ys)
+            zs2, _, al2, _ = imm_pair_bank(p2, ys)
+            e["filt"].append(_rel(np.einsum("nk,nkq->nq", al2, zs2[:, :, : p.q, 0]), Ex_f))
+            Ex_s, _, gam = exact_path_smoother(p, ys)
+            Ex_s2, _, gam2 = exact_path_smoother(p2, ys)
+            e["reg"].append(_rel(gam2.reshape(-1, p.K, p.K).sum(axis=1), gam))
+            e["kim2"].append(_rel(collapsed_rts_smoother(p2, ys, "gpb2", "kim")[0], Ex_s2))
+            e["imm2"].append(_rel(collapsed_rts_smoother(p2, ys, "imm", "kim")[0], Ex_s2))
+            e["gap"].append(_rel(Ex_s2, Ex_s))
+            e["immK"].append(_rel(collapsed_rts_smoother(p, ys, "imm", "kim")[0], Ex_s))
+            e["gain"].append(_rel(Ex_f, Ex_s))
+        out[name] = {key: (np.median(v), np.max(v)) for key, v in e.items()}
+        print(f"  {name}:")
+        for lab, key in rows:
+            print(f"    {lab:52s} {np.median(e[key]):.1e} ({np.max(e[key]):.1e})")
+
+    rng4 = np.random.default_rng(SEED0 + 1313)
+    cases = (
+        ("AB (C=0.4)", lambda: ab_model(0.4, dB=0.0), N_STEPS),
+        ("{A==MC} \\ AB", lambda: ab_model(0.4, dB=0.15), N_STEPS),
+        ("{C==0}, memory", cgo_memory_model, N_STEPS),
+        ("cross-annih. q=2 (E10)", lambda: cross_annihilation_model(annihilate=True), N_STEPS),
+        ("random X\\union K=2 q=3 s=1", lambda: random_cross_annihilation_params(rng4, 2, 3, 1), 8),
+        ("random X\\union K=3 q=3 s=1", lambda: random_cross_annihilation_params(rng4, 3, 3, 1), 6),
+        ("random X\\union K=2 q=3 s=2", lambda: random_cross_annihilation_params(rng4, 2, 3, 2), 8),
+        ("random {C==0} K=2 q=2 s=2", lambda: random_family_params(rng4, 2, 2, 2, "C0mem"), 8),
+        ("E10 rotated (C_k N_j != 0)", lambda: cross_annihilation_model(annihilate=False), N_STEPS),
+        ("off union (eps=.08)", lambda: off_union_model(0.4, 0.08), N_STEPS),
+        ("mixed (A0=0.4)", lambda: mixed_branch_model(0.4, 0.7), N_STEPS),
+    )
+    print(
+        "S13d one-step collapsed smoother (no backward state recursion), 6 records,"
+        " max of mean | variance | regime error:"
+    )
+    print(f"    {'':32s}{'GPB2 bank':>30s}{'IMM bank':>30s}")
+    onestep = {}
+    for name, mk, N in cases:
+        e = {bank: ([], [], []) for bank in ("gpb2", "imm")}
+        for sd in range(6):
+            p = mk()
+            _, _, ys = _simulate(p, N, seed=SEED0 + 2000 + sd)
+            Ex_s, Vx_s, gam_ex = exact_path_smoother(p, ys)
+            for bank in e:
+                Ex, Vx, gam = onestep_collapsed_smoother(p, ys, bank)
+                e[bank][0].append(_rel(Ex, Ex_s))
+                e[bank][1].append(_rel(Vx, Vx_s))
+                e[bank][2].append(_rel(gam, gam_ex))
+        onestep[name] = {bank: tuple(max(v) for v in e[bank]) for bank in e}
+        cells = "".join(
+            f"{max(e[bank][0]):>11.1e} |{max(e[bank][1]):>7.0e} |{max(e[bank][2]):>7.0e}"
+            for bank in ("gpb2", "imm")
+        )
+        print(f"    {name:32s}{cells}")
+    return table, out, onestep
+
+
+def exp_onestep_robustness(etas=(0.02, 0.08, 0.3)):
+    """S13e: off the domain, how the one-step collapsed smoother degrades
+    compared with the RTS-type collapsed smoothers, along four violation
+    directions of size eta (median normalized error of the smoothed mean,
+    log-log slopes in eta)."""
+    directions = (
+        ("A = MC + eta  (C=0.4)", lambda e: off_union_model(0.4, e)),
+        ("C = eta, memory", near_c0_model),
+        ("C_k = [c_k, eta], q=2", lambda e: cross_annihilation_model(c2=e)),
+        ("mixed, A0 = eta", lambda e: mixed_branch_model(e, 0.7)),
+    )
+    methods = (
+        ("one-step GPB2", lambda p, ys: onestep_collapsed_smoother(p, ys, "gpb2")[0]),
+        ("one-step IMM", lambda p, ys: onestep_collapsed_smoother(p, ys, "imm")[0]),
+        ("pair-RTS GPB2", lambda p, ys: collapsed_rts_smoother(p, ys, "gpb2", "pair")[0]),
+        ("Kim", lambda p, ys: collapsed_rts_smoother(p, ys, "gpb2", "kim")[0]),
+        ("IMM-RTS", lambda p, ys: collapsed_rts_smoother(p, ys, "imm", "kim")[0]),
+    )
+    print(
+        "S13e off-domain robustness, median error of the smoothed mean"
+        " (GPB2 filtered error and smoothing gain for scale):"
+    )
+    head = "".join(f"{lab:>15s}" for lab, _ in methods)
+    print(f"    {'direction':24s}{'eta':>6s}{head}{'GPB2 filt':>12s}{'gain':>8s}")
+    out = {}
+    for dname, mk in directions:
+        med = {lab: [] for lab, _ in methods}
+        filt, gain = [], []
+        for eta in etas:
+            p = mk(eta)
+            e = {lab: [] for lab, _ in methods}
+            ef, eg = [], []
+            for sd in range(N_SEEDS):
+                _, _, ys = _simulate(p, N_STEPS, seed=SEED0 + sd)
+                Ex_s, _, _ = exact_path_smoother(p, ys)
+                for lab, fn in methods:
+                    e[lab].append(_rel(fn(p, ys), Ex_s))
+                Ex_f, _, _ = exact_mixture_filter(p, ys)
+                ef.append(_rel(gpb2_filter(p, ys)[0], Ex_f))
+                eg.append(_rel(Ex_f, Ex_s))
+            for lab, _ in methods:
+                med[lab].append(np.median(e[lab]))
+            filt.append(np.median(ef))
+            gain.append(np.median(eg))
+            cells = "".join(f"{med[lab][-1]:>15.2e}" for lab, _ in methods)
+            print(f"    {dname:24s}{eta:>6}{cells}{filt[-1]:>12.1e}{gain[-1]:>8.2f}")
+        x = np.log10(etas)
+        slopes = {lab: np.polyfit(x, np.log10(med[lab]), 1)[0] for lab, _ in methods}
+        print(f"    {'  slope':30s}" + "".join(f"{slopes[lab]:>15.2f}" for lab, _ in methods))
+        out[dname] = {"median": med, "slope": slopes, "filt": filt, "gain": gain}
+    return out
+
+
+def exp_fixed_lag_robustness(etas=(0.02, 0.08, 0.3), lags=(1, 2, 3, 5, N_STEPS - 1)):
+    """S13f: the fixed-lag-L collapsed smoother (GPB2 bank) along the four
+    violation directions of S13e -- exact on the domain for every L, how much
+    of the off-domain error each extra lag recovers, against the GPB2
+    pair-RTS (median normalized error of the smoothed mean)."""
+    directions = (
+        ("A = MC + eta  (C=0.4)", lambda e: off_union_model(0.4, e)),
+        ("C = eta, memory", near_c0_model),
+        ("C_k = [c_k, eta], q=2", lambda e: cross_annihilation_model(c2=e)),
+        ("mixed, A0 = eta", lambda e: mixed_branch_model(e, 0.7)),
+    )
+    print("S13f fixed-lag-L collapsed smoother (GPB2 bank), median error of the smoothed mean:")
+    head = "".join(f"{'L=' + str(L):>11s}" for L in lags)
+    print(f"    {'direction':24s}{'eta':>6s}{head}{'pair-RTS':>11s}")
+    out = {}
+    for dname, mk in directions:
+        for eta in etas:
+            p = mk(eta)
+            e = {L: [] for L in lags}
+            e_rts = []
+            for sd in range(N_SEEDS):
+                _, _, ys = _simulate(p, N_STEPS, seed=SEED0 + sd)
+                Ex_s, _, _ = exact_path_smoother(p, ys)
+                for L in lags:
+                    e[L].append(_rel(fixed_lag_collapsed_smoother(p, ys, L)[0], Ex_s))
+                e_rts.append(_rel(collapsed_rts_smoother(p, ys, "gpb2", "pair")[0], Ex_s))
+            out[(dname, eta)] = {**{L: np.median(e[L]) for L in lags}, "rts": np.median(e_rts)}
+            cells = "".join(f"{np.median(e[L]):>11.2e}" for L in lags)
+            print(f"    {dname:24s}{eta:>6}{cells}{np.median(e_rts):>11.2e}")
+    return out
+
+
 def main():
     print(f"[smoothing_exactness] N={N_STEPS}, {N_SEEDS} seeds, ground truth K^N path smoother\n")
     exact_ab = exp_ab_gauge()
@@ -1721,6 +2404,12 @@ def main():
     exp_matrix_cross_annihilation()
     print()
     exp_time_reversal()
+    print()
+    exp_classical_smoothers()
+    print()
+    exp_onestep_robustness()
+    print()
+    exp_fixed_lag_robustness()
 
 
 if __name__ == "__main__":

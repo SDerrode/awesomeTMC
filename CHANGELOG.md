@@ -54,6 +54,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `K=1` only), the [Abb15] pair-dependent CGOMSM1 sharing the observation law and the filter
   of a CGOMSM2 (its smoother is the naive read-out, `0.55`–`0.85` away from the CGOMSM2
   smoother), and the stationary `K=1` example with state memory.
+- **`prg/experiments/smoothing_exactness.py` — experiment S13 (classical smoothers)**: the
+  exactness domains of the classical collapsed smoothers, the smoothing counterpart of the
+  IMM/GPB2 theorems of the exactness paper. `collapsed_rts_smoother(params, ys, bank,
+  weights)` fixes a collapsed RTS smoother by its forward bank (`"gpb2"` = Kim filter, or
+  `"imm"`) and its backward regime weights (`"kim"`, Kim 1994, or `"pair"`, the
+  pair-likelihood recursion; `("gpb2", "pair")` is the S7 pair-RTS). Against the exact
+  `K^N` smoother: Kim's smoother and the IMM-RTS are exact on `{C=0, A=0}` only (regimes
+  exact on all of `{C=0}`, state biased as soon as `A≠0`, equal dynamics included); the
+  GPB2 pair-RTS on `{A=MC}`; HBH nowhere. Confirmed on random matrix models (`K≤3`, `q=2`,
+  `s≤2`) of each family. The `K^2` embedding of Section V-E of the exactness paper
+  (`k2_embedding`, with `slaved_init`) keeps the exact filter and the smoothed regimes
+  (`~3e-16`), and the `K^2`-mode Kim / IMM-RTS smoothers realize the smoother of the
+  embedded model (`~5e-16`), which misses the CGOMSM2 smoother by `0.36`–`0.55` (median),
+  the order of the whole smoothing gain. The bound set by the terminal point is reachable:
+  `onestep_collapsed_smoother(params, ys, bank)` drops the backward state recursion
+  (one-step retrodiction of the filtered pair summary by `y_{n+1}`, pair-smoothed weights)
+  and is exact — mean, variance and regimes, `~1e-15` — on the whole GPB2 domain with the
+  GPB2 bank (cross-annihilation family, `q>1` included: random models with `q=3`, `K≤3`,
+  `s≤2`, where S11 found no state smoother) and on `{C=0}` with the IMM bank, i.e. on the
+  domain of its forward filter. Tests in `tests/test_classical_smoothers.py`.
+  `exp_onestep_robustness` (S13e) measures the off-domain behaviour along four violation
+  directions (`A = MC + η`, `C = η` with memory, matrix rows `[c_k, η]`, mixed `A0 = η`):
+  the one-step smoother degrades at first order with a large constant and loses to the
+  GPB2 pair-RTS beyond `η ≈ 0.03`–`0.04` (on the slaved and mixed directions at every `η`),
+  while Kim and the IMM-RTS stay at `0.06`–`0.15` and are dominated by the pair-RTS
+  everywhere. ``cns_exactness.cross_annihilation_model`` takes an optional ``c2``.
+  `fixed_lag_collapsed_smoother(params, ys, L)` (S13f, `exp_fixed_lag_robustness`)
+  enumerates the `K^{L+1}` regime windows `(r_n, …, r_{n+L})` and retrodicts `x_n` from
+  `y_{n+1:n+L}` by an augmented Kalman filter started from the filtered pair summary
+  (`L=1` is the one-step smoother): exact on the GPB2 domain for every `L`, and off it the
+  error falls with `L` — `L=2` beats the pair-RTS only for the weakest violation
+  (`η=0.02`), `L=3` on all points but the two strongest violations, `L=5` on all four
+  directions at every `η` tested (by a factor 1.5 to 19).
 
 ## [3.2.1] — 2026-10-30
 
