@@ -8,13 +8,22 @@ Short records (N = 6) against the exact K^N path smoother:
   their regimes are biased, while the GPB2 pair-RTS is exact;
 * the K^2 embedding of a slaved AB model transports the exact filter and
   the smoothed regimes, the K^2-mode IMM-RTS realizes the smoother of the
-  embedded model, and that smoother is not the CGOMSM2 one.
+  embedded model, and that smoother is not the CGOMSM2 one;
+* the one-step collapsed smoother is exact on the domain of its forward
+  filter: the cross-annihilation family with the GPB2 bank, {C==0} with the
+  IMM bank.
 """
 
 import numpy as np
 import pytest
 
-from prg.experiments.cns_exactness import SEED0, _rel, ab_model, cgo_memory_model
+from prg.experiments.cns_exactness import (
+    SEED0,
+    _rel,
+    ab_model,
+    cgo_memory_model,
+    cross_annihilation_model,
+)
 from prg.experiments.reference_filters import exact_mixture_filter
 from prg.experiments.smoothing_exactness import (
     collapsed_rts_smoother,
@@ -22,7 +31,9 @@ from prg.experiments.smoothing_exactness import (
     imm_pair_bank,
     k2_embedding,
     memoryless_c0_model,
+    onestep_collapsed_smoother,
     pair_rts_smoother,
+    random_cross_annihilation_params,
     slaved_init,
 )
 from prg.experiments.study import _simulate
@@ -89,3 +100,37 @@ def test_k2_embedding_transports_the_filter_not_the_smoother():
     assert _rel(gam2.reshape(-1, p.K, p.K).sum(axis=1), gam) < TOL
     assert _rel(collapsed_rts_smoother(p2, ys, "imm", "kim")[0], Ex_s2) < TOL
     assert _rel(Ex_s2, Ex_s) > 0.1
+
+
+@pytest.mark.parametrize(
+    "make, bank",
+    [
+        (lambda: ab_model(0.4), "gpb2"),
+        (cgo_memory_model, "gpb2"),
+        (lambda: cross_annihilation_model(annihilate=True), "gpb2"),
+        (cgo_memory_model, "imm"),
+    ],
+)
+def test_onestep_smoother_exact_on_the_domain_of_its_filter(make, bank):
+    p = make()
+    ys = _record(p)
+    Ex_s, Vx_s, gam_ex = exact_path_smoother(p, ys)
+    Ex, Vx, gam = onestep_collapsed_smoother(p, ys, bank)
+    assert _rel(Ex, Ex_s) < TOL
+    assert _rel(Vx, Vx_s) < TOL
+    assert _rel(gam, gam_ex) < TOL
+
+
+def test_onestep_smoother_exact_on_random_cross_annihilation_model():
+    p = random_cross_annihilation_params(np.random.default_rng(3), 2, 3, 1)
+    ys = _record(p)
+    Ex_s, _, _ = exact_path_smoother(p, ys)
+    assert _rel(onestep_collapsed_smoother(p, ys, "gpb2")[0], Ex_s) < TOL
+    assert _rel(onestep_collapsed_smoother(p, ys, "imm")[0], Ex_s) > 1e-4
+
+
+def test_onestep_smoother_biased_off_the_gpb2_domain():
+    p = cross_annihilation_model(annihilate=False)
+    ys = _record(p)
+    Ex_s, _, _ = exact_path_smoother(p, ys)
+    assert _rel(onestep_collapsed_smoother(p, ys, "gpb2")[0], Ex_s) > 1e-3

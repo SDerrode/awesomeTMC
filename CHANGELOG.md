@@ -67,7 +67,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`k2_embedding`, with `slaved_init`) keeps the exact filter and the smoothed regimes
   (`~3e-16`), and the `K^2`-mode Kim / IMM-RTS smoothers realize the smoother of the
   embedded model (`~5e-16`), which misses the CGOMSM2 smoother by `0.36`–`0.55` (median),
-  the order of the whole smoothing gain. Tests in `tests/test_classical_smoothers.py`.
+  the order of the whole smoothing gain. The bound set by the terminal point is reachable:
+  `onestep_collapsed_smoother(params, ys, bank)` drops the backward state recursion
+  (one-step retrodiction of the filtered pair summary by `y_{n+1}`, pair-smoothed weights)
+  and is exact — mean, variance and regimes, `~1e-15` — on the whole GPB2 domain with the
+  GPB2 bank (cross-annihilation family, `q>1` included: random models with `q=3`, `K≤3`,
+  `s≤2`, where S11 found no state smoother) and on `{C=0}` with the IMM bank, i.e. on the
+  domain of its forward filter. Tests in `tests/test_classical_smoothers.py`.
 
 ## [3.2.1] — 2026-10-30
 
