@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`prg/experiments/smoothing_exactness.py` — experiment S12 (time reversal)**, behind the
+  section "Time Reversal: the Two Smoothers as Mirror Filters" of the exact-smoothing paper.
+  On random CGOMSM1 / CGOMSM2 models (`K=2`, `(q,s)` in `{(1,1),(2,1),(2,2)}`, exact `K^N`
+  path enumeration extended to pair-dependent transitions), it measures which observations
+  each exact smoothed mean depends on: on CGOMSM2 the per-regime smoothed mean ignores the
+  past and the pair-conditional one ignores everything beyond `(y_n, y_{n+1})` (a reweighted
+  one-step *backward* filter, equal to the constant-gain formula to `1.2e-15`); on CGOMSM1
+  it ignores the future (reweighted *forward* filter), and is one-step iff `A=0`, the exact
+  mirror of CGOMSM2. Also checked: the reversed transitions (reversal of CGOMSM2 has
+  `C~ = A~ = 0` and a regime transition free of the hidden state; reversal of CGOMSM1 is
+  CGOMSM2 iff `A=0`), the mixture caveat (the moment-matched Gaussian reversal is exact for
+  `K=1` only), the [Abb15] pair-dependent CGOMSM1 sharing the observation law and the filter
+  of a CGOMSM2 (its smoother is the naive read-out, `0.55`–`0.85` away from the CGOMSM2
+  smoother), and the stationary `K=1` example with state memory.
+
 ## [3.2.1] — 2026-10-30
 
 ### Fixed
