@@ -54,6 +54,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `K=1` only), the [Abb15] pair-dependent CGOMSM1 sharing the observation law and the filter
   of a CGOMSM2 (its smoother is the naive read-out, `0.55`–`0.85` away from the CGOMSM2
   smoother), and the stationary `K=1` example with state memory.
+- **`prg/experiments/smoothing_exactness.py` — experiment S13 (classical smoothers)**: the
+  exactness domains of the classical collapsed smoothers, the smoothing counterpart of the
+  IMM/GPB2 theorems of the exactness paper. `collapsed_rts_smoother(params, ys, bank,
+  weights)` fixes a collapsed RTS smoother by its forward bank (`"gpb2"` = Kim filter, or
+  `"imm"`) and its backward regime weights (`"kim"`, Kim 1994, or `"pair"`, the
+  pair-likelihood recursion; `("gpb2", "pair")` is the S7 pair-RTS). Against the exact
+  `K^N` smoother: Kim's smoother and the IMM-RTS are exact on `{C=0, A=0}` only (regimes
+  exact on all of `{C=0}`, state biased as soon as `A≠0`, equal dynamics included); the
+  GPB2 pair-RTS on `{A=MC}`; HBH nowhere. Confirmed on random matrix models (`K≤3`, `q=2`,
+  `s≤2`) of each family. The `K^2` embedding of Section V-E of the exactness paper
+  (`k2_embedding`, with `slaved_init`) keeps the exact filter and the smoothed regimes
+  (`~3e-16`), and the `K^2`-mode Kim / IMM-RTS smoothers realize the smoother of the
+  embedded model (`~5e-16`), which misses the CGOMSM2 smoother by `0.36`–`0.55` (median),
+  the order of the whole smoothing gain. Tests in `tests/test_classical_smoothers.py`.
 
 ## [3.2.1] — 2026-10-30
 
