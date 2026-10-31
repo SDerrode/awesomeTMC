@@ -28,6 +28,7 @@ from prg.experiments.reference_filters import exact_mixture_filter
 from prg.experiments.smoothing_exactness import (
     collapsed_rts_smoother,
     exact_path_smoother,
+    fixed_lag_collapsed_smoother,
     imm_pair_bank,
     k2_embedding,
     memoryless_c0_model,
@@ -134,3 +135,24 @@ def test_onestep_smoother_biased_off_the_gpb2_domain():
     ys = _record(p)
     Ex_s, _, _ = exact_path_smoother(p, ys)
     assert _rel(onestep_collapsed_smoother(p, ys, "gpb2")[0], Ex_s) > 1e-3
+
+
+def test_fixed_lag_one_is_the_onestep_smoother():
+    p = cross_annihilation_model(annihilate=True)
+    ys = _record(p)
+    Ex1, Vx1 = fixed_lag_collapsed_smoother(p, ys, 1)
+    Ex, Vx, _ = onestep_collapsed_smoother(p, ys)
+    assert _rel(Ex1, Ex) < TOL
+    assert _rel(Vx1, Vx) < TOL
+
+
+@pytest.mark.parametrize(
+    "make", [lambda: ab_model(0.4), cgo_memory_model, lambda: cross_annihilation_model(True)]
+)
+def test_fixed_lag_smoother_exact_on_the_gpb2_domain(make):
+    p = make()
+    ys = _record(p)
+    Ex_s, Vx_s, _ = exact_path_smoother(p, ys)
+    Ex, Vx = fixed_lag_collapsed_smoother(p, ys, 3)
+    assert _rel(Ex, Ex_s) < TOL
+    assert _rel(Vx, Vx_s) < TOL

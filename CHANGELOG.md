@@ -80,6 +80,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   GPB2 pair-RTS beyond `η ≈ 0.03`–`0.04` (on the slaved and mixed directions at every `η`),
   while Kim and the IMM-RTS stay at `0.06`–`0.15` and are dominated by the pair-RTS
   everywhere. ``cns_exactness.cross_annihilation_model`` takes an optional ``c2``.
+  `fixed_lag_collapsed_smoother(params, ys, L)` (S13f, `exp_fixed_lag_robustness`)
+  enumerates the `K^{L+1}` regime windows `(r_n, …, r_{n+L})` and retrodicts `x_n` from
+  `y_{n+1:n+L}` by an augmented Kalman filter started from the filtered pair summary
+  (`L=1` is the one-step smoother): exact on the GPB2 domain for every `L`, and off it the
+  error falls with `L` — `L=2` already beats the pair-RTS on the slaved and mixed
+  directions, `L=5` on all four directions at every `η` tested.
 
 ## [3.2.1] — 2026-10-30
 

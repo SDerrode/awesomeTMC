@@ -1047,6 +1047,71 @@ def onestep_collapsed_smoother(params, ys, bank="gpb2"):
     return Ex, Vx, gam
 
 
+def fixed_lag_collapsed_smoother(params, ys, L, bank="gpb2"):
+    """Collapsed fixed-lag-L smoother (L = 1 is onestep_collapsed_smoother).
+
+    For each n, every regime window (r_n, ..., r_m), m = min(n + L, N), is
+    enumerated (K^{L+1} windows): an augmented Kalman filter started from the
+    mode-r_n filtered pair summary of the forward bank carries (z_n, z_t)
+    through the window and retrodicts x_n from y_{n+1:m}; the window is
+    weighted by alpha_n(r_n) prod p p(y | window) beta_m(r_m), beta from the
+    pair-likelihood backward recursion.  The observations beyond y_m enter
+    through the regime weights only.  Exact on the GPB2 domain for every L
+    (the argument of the one-step smoother), it recovers more of the future
+    off the domain as L grows; cost O(N K^{L+1}).  Returns (Ex, Vx).
+    """
+    K, q, s = params.K, params.q, params.s
+    dim = q + s
+    ys_ = np.asarray(ys, float).reshape(-1, s)
+    N = ys_.shape[0]
+    H = _obs_matrix(q, s)
+    F = [params.f_matrix.F(k) for k in range(K)]
+    b = [params.b(k).reshape(dim, 1) for k in range(K)]
+    SW = [params.noise_cov.Sigma_W(k) for k in range(K)]
+    zs, Ps, alpha, A_n = (gpb2_bank if bank == "gpb2" else imm_pair_bank)(params, ys_)
+    beta = np.zeros((N, K))
+    beta[N - 1] = 1.0
+    for n in range(N - 2, -1, -1):
+        beta[n] = A_n[n] @ beta[n + 1]
+        beta[n] /= beta[n].max()
+    Ex = np.zeros((N, q))
+    Vx = np.zeros((N, q, q))
+    for n in range(N):
+        m = min(n + L, N - 1)
+        lws, mus, covs = [], [], []
+        for win in product(range(K), repeat=m - n + 1):
+            j = win[0]
+            mu0, zt = zs[n, j].copy(), zs[n, j].copy()
+            P00, P0t, Ptt = Ps[n, j].copy(), Ps[n, j].copy(), Ps[n, j].copy()
+            lw = np.log(alpha[n, j] + 1e-300)
+            for t, k in enumerate(win[1:]):
+                lw += np.log(params.P[win[t], k] + 1e-300)
+                zt = F[k] @ zt + b[k]
+                Ptt = F[k] @ Ptt @ F[k].T + SW[k]
+                P0t = P0t @ F[k].T
+                S = H @ Ptt @ H.T
+                Si = np.linalg.inv(S)
+                e = ys_[n + 1 + t].reshape(s, 1) - H @ zt
+                K0 = P0t @ H.T @ Si
+                Kt = Ptt @ H.T @ Si
+                mu0 = mu0 + K0 @ e
+                zt = zt + Kt @ e
+                P00 = P00 - K0 @ S @ K0.T
+                P0t = P0t - K0 @ S @ Kt.T
+                Ptt = Ptt - Kt @ S @ Kt.T
+                lw -= 0.5 * float((e.T @ Si @ e)[0, 0] + np.log(np.linalg.det(2 * np.pi * S)))
+            lws.append(lw + np.log(beta[m, win[-1]] + 1e-300))
+            mus.append(mu0[:q, 0])
+            covs.append(P00[:q, :q])
+        w = np.exp(np.array(lws) - max(lws))
+        w /= w.sum()
+        Ex[n] = w @ np.array(mus)
+        for wi, mu, P in zip(w, mus, covs):
+            d = mu - Ex[n]
+            Vx[n] += wi * (P + np.outer(d, d))
+    return Ex, Vx
+
+
 CLASSICAL_SMOOTHERS = (
     ("Kim (GPB2, Kim weights)", "gpb2", "kim"),
     ("IMM-RTS (IMM, Kim weights)", "imm", "kim"),
@@ -2277,6 +2342,38 @@ def exp_onestep_robustness(etas=(0.02, 0.08, 0.3)):
     return out
 
 
+def exp_fixed_lag_robustness(etas=(0.02, 0.08, 0.3), lags=(1, 2, 3, 5, N_STEPS - 1)):
+    """S13f: the fixed-lag-L collapsed smoother (GPB2 bank) along the four
+    violation directions of S13e -- exact on the domain for every L, how much
+    of the off-domain error each extra lag recovers, against the GPB2
+    pair-RTS (median normalized error of the smoothed mean)."""
+    directions = (
+        ("A = MC + eta  (C=0.4)", lambda e: off_union_model(0.4, e)),
+        ("C = eta, memory", near_c0_model),
+        ("C_k = [c_k, eta], q=2", lambda e: cross_annihilation_model(c2=e)),
+        ("mixed, A0 = eta", lambda e: mixed_branch_model(e, 0.7)),
+    )
+    print("S13f fixed-lag-L collapsed smoother (GPB2 bank), median error of the smoothed mean:")
+    head = "".join(f"{'L=' + str(L):>11s}" for L in lags)
+    print(f"    {'direction':24s}{'eta':>6s}{head}{'pair-RTS':>11s}")
+    out = {}
+    for dname, mk in directions:
+        for eta in etas:
+            p = mk(eta)
+            e = {L: [] for L in lags}
+            e_rts = []
+            for sd in range(N_SEEDS):
+                _, _, ys = _simulate(p, N_STEPS, seed=SEED0 + sd)
+                Ex_s, _, _ = exact_path_smoother(p, ys)
+                for L in lags:
+                    e[L].append(_rel(fixed_lag_collapsed_smoother(p, ys, L)[0], Ex_s))
+                e_rts.append(_rel(collapsed_rts_smoother(p, ys, "gpb2", "pair")[0], Ex_s))
+            out[(dname, eta)] = {**{L: np.median(e[L]) for L in lags}, "rts": np.median(e_rts)}
+            cells = "".join(f"{np.median(e[L]):>11.2e}" for L in lags)
+            print(f"    {dname:24s}{eta:>6}{cells}{np.median(e_rts):>11.2e}")
+    return out
+
+
 def main():
     print(f"[smoothing_exactness] N={N_STEPS}, {N_SEEDS} seeds, ground truth K^N path smoother\n")
     exact_ab = exp_ab_gauge()
@@ -2304,6 +2401,8 @@ def main():
     exp_classical_smoothers()
     print()
     exp_onestep_robustness()
+    print()
+    exp_fixed_lag_robustness()
 
 
 if __name__ == "__main__":
