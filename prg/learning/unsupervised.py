@@ -2,7 +2,7 @@
 """
 prg/learning/unsupervised.py
 ============================
-Unsupervised (Y-only) EM for the ``{C≡0}`` family — the *exact* EM of the
+Unsupervised (Y-only) EM for the ``{C≡0}`` family (CGOMSM1) — the *exact* EM of the
 smoothing companion paper.
 
 Setting

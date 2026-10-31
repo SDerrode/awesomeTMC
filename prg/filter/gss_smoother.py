@@ -6,7 +6,7 @@ Exact fixed-interval smoothers for the GSS model on the exactness domains
 (the smoothing companion of the filtering CNS paper, docs/CNS-exactness).
 
 On the two uniform families where finite-dimensional *filtering* is exact —
-``{C≡0}`` (CGO-MSM) and the AB constraint (NGH-MSM), plus the intermediate
+``{C≡0}`` (CGOMSM1) and the AB constraint (CGOMSM2), plus the intermediate
 slaving-(A) family ``{A≡MC}`` — fixed-interval smoothing is also exact with an
 O(N K²) two-pass algorithm, but the *mechanism* differs per family:
 
@@ -19,14 +19,14 @@ O(N K²) two-pass algorithm, but the *mechanism* differs per family:
     (kernel ``"lag1"``). Exact on the matching family.
 
 ``reweight_smoother(params, ys)``
-    The ``{C≡0}`` state smoother: **reweighting**. Because the future informs
+    The ``{C≡0}`` (CGOMSM1) state smoother: **reweighting**. Because the future informs
     the state only through the regimes (p(x_n | r_{1:n}, y_{1:N}) =
     p(x_n | r_{1:n}, y_{1:n}) when C≡0), the smoothed law is the *filtered*
     per-regime summaries reweighted by the smoothed regime posterior — no
     backward state correction at all. Exact (mean and variance) iff C≡0.
 
 ``constant_gain_smoother(params, ys)``
-    The AB state smoother: **one-step constant-gain correction**. Under AB the
+    The AB (CGOMSM2) state smoother: **one-step constant-gain correction**. Under AB the
     fresh state noise ξ_n influences the future only through Y_{n+1}, so the
     exact backward correction is one step and pair-indexed, with gains
 
@@ -439,7 +439,7 @@ def family_lrt(params_h0, params_h1, ys, kernel_h0: str = "c0", kernel_h1: str =
 
 
 def reweight_smoother(params, ys):
-    """{C≡0} fixed-interval smoother: smoothed-regime **reweighting** of the
+    """{C≡0} (CGOMSM1) fixed-interval smoother: smoothed-regime **reweighting** of the
     *filtered* per-regime summaries — no backward state correction.
 
     The forward pass is the (exact-under-C≡0) IMM bank keeping the per-regime
@@ -515,7 +515,7 @@ def reweight_smoother(params, ys):
 
 
 def constant_gain_smoother(params, ys):
-    """AB fixed-interval smoother: pair-weighted one-step correction with
+    """AB (CGOMSM2) fixed-interval smoother: pair-weighted one-step correction with
     precomputed constant gains W_{jk} — no covariance recursion, O(N K²).
 
     Mechanism: under AB the state is slaved to the current observation up to
