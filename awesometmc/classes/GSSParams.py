@@ -490,7 +490,8 @@ class GSSParams:
         Parameters
         ----------
         tol : float
-            Tolerance on the relative pairwise AB residual.
+            Tolerance on the relative block AB residual
+            (:func:`awesometmc.utils.ab_constraint.ab_residual_max`).
         raise_on_fail : bool
             If True (default) and the model violates at least one condition,
             raise :class:`~awesometmc.utils.exceptions.ParamError`. If False, the

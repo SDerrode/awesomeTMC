@@ -52,7 +52,7 @@ from PyQt6.QtWidgets import (
 )
 
 from awesometmc.gui.matrix_widget import MatrixTableWidget, VectorWidget
-from awesometmc.utils.ab_constraint import compute_AB, compute_ab_residual
+from awesometmc.utils.ab_constraint import compute_AB, compute_ab_block_residuals
 
 # Tolerance for the live AB residual badge — kept in sync with
 # awesometmc.filter.gss_filter.AB_TOL so the GUI shows a green badge in
@@ -140,9 +140,10 @@ class _StateTab(QWidget):
         self._f_widget.set_matrix(np.eye(q + s) * 0.5)
 
         # Stability badges live in a sub-column directly below _f_widget.
-        # The AB residual badge — green when ‖F‖_F < _AB_BADGE_TOL,
-        # amber otherwise — lives beside them so the user sees at a glance
-        # whether the current model is AB-constrained.
+        # The AB residual badge — green when the relative block residual
+        # max(‖A − MC‖, ‖B − MD‖) / scale is < _AB_BADGE_TOL, amber otherwise —
+        # lives beside them so the user sees at a glance whether the current
+        # regime is AB-constrained.
         self._stab_F_badge = QLabel()
         self._stab_F_badge.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self._stab_F_badge.setFixedHeight(16)
@@ -156,9 +157,10 @@ class _StateTab(QWidget):
         self._ab_badge.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self._ab_badge.setFixedHeight(16)
         self._ab_badge.setToolTip(
-            "Per-regime (k,k) residual — a NECESSARY but not sufficient AB check.\n"
-            "Full AB is over all K² regime pairs and is verified on the complete\n"
-            "model when you Filter (the 'CGOMSM2-KF' mode validates it)."
+            "Relative block residual of the AB constraint for this regime:\n"
+            "max(‖A − M C‖ / max(‖A‖, ‖M C‖), ‖B − M D‖ / max(‖B‖, ‖M D‖)),\n"
+            "M = Δ Σ_V⁻¹. Zero iff (A, B) satisfy AB. The 'CGOMSM2-KF' mode\n"
+            "re-checks it on every regime of the complete model when you Filter."
         )
 
         f_col = QVBoxLayout()
@@ -513,12 +515,12 @@ class _StateTab(QWidget):
         self._update_ab_badge()
 
     def _update_ab_badge(self) -> None:
-        """Compute the AB Frobenius residual and style ``_ab_badge``.
+        """Compute the relative AB block residual and style ``_ab_badge``.
 
-        Green ✓ when ‖F‖_F < ``_AB_BADGE_TOL`` (model is AB-constrained
+        Green ✓ when max(‖A − MC‖, ‖B − MD‖) / scale < ``_AB_BADGE_TOL`` (regime is AB-constrained
         and ``mode='ngh_kf'`` is safe), amber ⚠ otherwise (filter would
         emit a warning), grey ? when the residual cannot be evaluated
-        (singular M, missing matrix data).
+        (singular Σ_V, missing matrix data).
         """
         _GREY = (
             "font-size: 10px; padding: 2px 8px; border-radius: 3px;"
@@ -533,16 +535,16 @@ class _StateTab(QWidget):
 
         q, s = self._q, self._s
         try:
-            res = compute_ab_residual(
+            R_A, R_B = compute_ab_block_residuals(
                 A=F[:q, :q],
                 B=F[:q, q:],
                 C=F[q:, :q],
                 D=F[q:, q:],
-                SU=Sw[:q, :q],
                 Dt=Sw[:q, q:],
                 SV=Sw[q:, q:],
+                relative=True,
             )
-            res_norm = float(np.linalg.norm(res, "fro"))
+            res_norm = max(float(np.linalg.norm(R_A, "fro")), float(np.linalg.norm(R_B, "fro")))
         except np.linalg.LinAlgError, ValueError:
             self._ab_badge.setText("AB = ?")
             self._ab_badge.setStyleSheet(_GREY)
@@ -554,7 +556,7 @@ class _StateTab(QWidget):
         else:
             bg, fg, border = "#fff3cd", "#856404", "#ffc107"
             icon = "⚠"
-        self._ab_badge.setText(f"AB ‖F‖ = {res_norm:.2e} {icon}")
+        self._ab_badge.setText(f"AB rel. = {res_norm:.2e} {icon}")
         self._ab_badge.setStyleSheet(
             f"font-size: 10px; padding: 2px 8px; border-radius: 3px;"
             f"background: {bg}; color: {fg}; border: 1px solid {border};"

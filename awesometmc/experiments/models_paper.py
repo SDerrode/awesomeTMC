@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from awesometmc.utils.ab_constraint import compute_AB, compute_ab_residual
+from awesometmc.utils.ab_constraint import compute_AB, compute_ab_block_residuals
 
 __all__ = [
     "get_params_M1",
@@ -44,11 +44,9 @@ _AB_ASSERT_TOL = 1e-8  # tighter than filter's AB_TOL=1e-6 for ground-truth mode
 
 
 def _check_ab(name: str, k: int, A, B, C, D, SU, Dt, SV) -> None:
-    """Raise AssertionError if AB residual is too large."""
-    res = compute_ab_residual(A, B, C, D, SU, Dt, SV)
-    Z = Dt.T @ A.T + SV @ B.T  # LHS of AB: Δᵀ Aᵀ + Σ_V Bᵀ
-    scale = max(float(np.linalg.norm(Z, "fro")), 1.0)
-    rel = float(np.linalg.norm(res, "fro")) / scale
+    """Raise AssertionError if the relative AB block residual is too large."""
+    R_A, R_B = compute_ab_block_residuals(A, B, C, D, Dt, SV, relative=True)
+    rel = max(float(np.linalg.norm(R_A, "fro")), float(np.linalg.norm(R_B, "fro")))
     assert rel < _AB_ASSERT_TOL, (
         f"Model {name} regime k={k}: AB residual {rel:.2e} >= {_AB_ASSERT_TOL:.0e}"
     )

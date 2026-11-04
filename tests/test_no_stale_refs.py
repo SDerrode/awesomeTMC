@@ -73,6 +73,17 @@ _FORBIDDEN_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
     (re.compile(r"\bcompute_h5_residual\b"), "compute_h5_residual", "use compute_ab_residual"),
     (re.compile(r"\bh5_residual_max\b"), "h5_residual_max", "use ab_residual_max"),
     (re.compile(r"\bH5_TOL\b"), "H5_TOL", "use AB_TOL"),
+    # Renamed v3.1.2 → next: the regression residuals were not the AB test
+    (
+        re.compile(r"\bcompute_ab_residual\b"),
+        "compute_ab_residual",
+        "use compute_ab_block_residuals (the AB test) or compute_pu_residual (diagnostic)",
+    ),
+    (
+        re.compile(r"\bcompute_ab_pair_residual\b"),
+        "compute_ab_pair_residual",
+        "use compute_pu_pair_residual",
+    ),
 ]
 
 # Files where matches are acceptable (historical / external docs).

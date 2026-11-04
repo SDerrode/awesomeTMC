@@ -395,6 +395,49 @@ def cross_annihilation_model(annihilate=True, p_switch=0.10, c2=None):
     return with_stationary_init(p)
 
 
+def jmls_cross_annihilation_model(kappa=(0.8, -0.5), p_switch=0.10):
+    """A jump Markov linear system (JMLS) in the cross-annihilation family
+    that is **not** AB (regression gauge of the block AB test). K=2, q=2, s=1,
+    written in the pairwise form with H = [1, 0]: A_r = kappa_r e_1 e_2^T,
+    B_r = 0, C_r = H A_r, D_r = 0, Sigma_U,r = Sigma_u,r (diagonal), Delta_r =
+    Sigma_u,r H^T, Sigma_V,r = H Sigma_u,r H^T + Sigma_v,r. The memories
+    N_r = A_r - M_r C_r = kappa_r (1 - Sigma_u,r[0,0] / Sigma_V,r) e_1 e_2^T are
+    nonzero, yet C_k N_j = 0 for every pair since C_k is a multiple of e_2^T:
+    GPB2 is exact and the constant-gain filter is biased (~2e-3 in normalized
+    sup norm on 10-step records). The pairwise regression residuals of the
+    (PU) property (``pu_residual_max``) vanish on it; only the block test
+    (``ab_residual_max``) rejects it."""
+    from awesometmc.classes.FMatrix import FMatrix as _FM
+    from awesometmc.classes.NoiseCovariance import GSSNoiseCovariance as _NC
+
+    K, q, s = 2, 2, 1
+    P = np.array([[1 - p_switch, p_switch], [p_switch, 1 - p_switch]])
+    Ht = np.array([[1.0, 0.0]])
+    Su = [np.diag([0.5, 1.0]), np.diag([0.8, 0.6])]
+    Sv = [np.array([[0.3]]), np.array([[0.9]])]
+    A = [kappa[r] * np.array([[0.0, 1.0], [0.0, 0.0]]) for r in range(K)]
+    B = [np.zeros((q, s)) for _ in range(K)]
+    C = [Ht @ A[r] for r in range(K)]
+    D = [np.zeros((s, s)) for _ in range(K)]
+    SU = [Su[r] for r in range(K)]
+    Dt = [Su[r] @ Ht.T for r in range(K)]
+    SV = [Ht @ Su[r] @ Ht.T + Sv[r] for r in range(K)]
+    fm = _FM(K, q, s, A, B, C, D)
+    nc = _NC(K, q, s, SU, Dt, SV)
+    p = GSSParams(
+        K=K,
+        q=q,
+        s=s,
+        P=P,
+        f_matrix=fm,
+        noise_cov=nc,
+        pi0=None,
+        mu_z0_list=[np.zeros((q + s, 1)) for _ in range(K)],
+        Sigma_z0_list=[np.eye(q + s) for _ in range(K)],
+    )
+    return with_stationary_init(p)
+
+
 def ry_markov_model(residual_in_kernel=True, beta=(0.2, -0.15), p_switch=0.10):
     """E11: q=2, s=1, K=2. Rows C_k = [c_k, 0], memories N_j = e_2 v_j^T (so
     C_k N_j = 0), input residual B_j - M_j D_j = beta_j e_2 (in the kernel of

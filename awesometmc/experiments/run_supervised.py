@@ -48,7 +48,7 @@ from awesometmc.experiments.models_paper import get_params
 from awesometmc.experiments.run_simulations import _params_from_dict
 from awesometmc.filter.gss_filter import GSSFilter
 from awesometmc.learning.supervised import fit_supervised
-from awesometmc.utils.ab_constraint import compute_ab_residual
+from awesometmc.utils.ab_constraint import compute_ab_block_residuals
 
 __all__ = ["run_supervised_all", "run_supervised_trial"]
 
@@ -110,9 +110,10 @@ def _rel_frob(M_est: np.ndarray, M_true: np.ndarray) -> float:
 
 def _max_ab_residual(est: dict) -> float:
     """
-    Max relative AB residual over all regimes of an estimated model.
+    Max relative AB block residual over all regimes of an estimated model
+    (‖A − MC‖ and ‖B − MD‖ relative to their scales, M = Δ Σ_V⁻¹).
 
-    Uses the same definition as GSSFilter._check_ab and
+    Uses the same definition as GSSFilter._check_ab, validate_ngh_msm and
     awesometmc/experiments/models_paper.py::_check_ab.
     """
     K, q = est["K"], est["q"]
@@ -126,12 +127,10 @@ def _max_ab_residual(est: dict) -> float:
         Dt = est["Delta_list"][k]
         SV = est["Sigma_V_list"][k]
         try:
-            F = compute_ab_residual(A, B, C, D, SU, Dt, SV)
-        except np.linalg.LinAlgError:
+            R_A, R_B = compute_ab_block_residuals(A, B, C, D, Dt, SV, relative=True)
+        except np.linalg.LinAlgError, ValueError:
             return float("nan")
-        Z = Dt.T @ A.T + SV @ B.T  # LHS of AB: Δᵀ Aᵀ + Σ_V Bᵀ
-        scale = max(float(np.linalg.norm(Z, "fro")), 1.0)
-        rel = float(np.linalg.norm(F, "fro")) / scale
+        rel = max(float(np.linalg.norm(R_A, "fro")), float(np.linalg.norm(R_B, "fro")))
         max_rel = max(max_rel, rel)
     return max_rel
 
