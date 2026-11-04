@@ -4,30 +4,37 @@ prg/utils/ab_constraint.py
 ==========================
 Closed-form AB-constrained "AB constraint" parametrisation.
 
-The AB algebraic constraint, derived from the Markovianity of (R, Y)
-(paper appendix B), reads
+The AB constraint, derived from the Markovianity of (R, Y) (the TAC paper,
+Proposition "nsc"), is the pair of **block identities**, for every regime r,
 
-    Δᵀ Aᵀ + Σ_V Bᵀ  =  P M⁻¹ (Q Aᵀ + R Bᵀ + Δᵀ),
+    A_r = M_r C_r,        B_r = M_r D_r,        M_r = Δ_r Σ_V,r⁻¹.
 
-with P = Δᵀ Cᵀ + Σ_V Dᵀ, Q = C Σ_U + D Δᵀ, R = C Δ + D Σ_V,
-M = Q Cᵀ + R Dᵀ + Σ_V. The closed form
+It is necessary and sufficient for the conditional independence of X_{n+1}
+and (R_n, Y_n) given (R_{n+1}, Y_{n+1}) to hold **for every** joint covariance
+of (X_n, Y_n), and it is what the constant-gain filter (``GSSFilter`` mode
+``"ngh_kf"``) requires. The closed form
 
     A = Δ Σ_V⁻¹ C,        B = Δ Σ_V⁻¹ D
 
-is **sufficient** for AB: a model with these blocks satisfies the
-K² regime-pair equations of AB by construction, for any choice of
-(C, D, Σ_U, Σ_V, Δ).
+is therefore both the way to *build* an AB model from the free blocks
+(C, D, Σ_U, Σ_V, Δ) and the way to *test* one: a model is AB-constrained iff
+the block residuals ``A_r − M_r C_r`` and ``B_r − M_r D_r`` vanish at every
+regime. This is the test implemented by :func:`ab_residual_max` and used by
+:func:`validate_ngh_msm`, ``GSSFilter`` and ``prg.utils.exactness``.
 
-Necessity is more subtle. Under the physical hypothesis that the K
-regime-noise covariances Σ(r) = [[Σ_U,r, Δ_r]; [Δᵀ_r, Σ_V,r]] are
-all positive definite, an elimination argument shows that AB is also
-**necessary** — i.e., the unique AB-constrained parametrisation —
-generically when K·s ≥ q + s. In the sub-determined regime
-K·s < q + s, AB-constrained models exist that are not of the AB
-form: AB is one specific point in a (q+s−Ks)·q-dimensional affine
-space of solutions per regime. Most practical configurations
-(K=2 or 3, q=s) fall in the over- or exactly-determined regime
-where AB is the constraint.
+A weaker, *pairwise regression* condition is also available as a diagnostic:
+property (PU), the conditional independence of X_{n+1} and Y_n given
+(R_n, R_{n+1}, Y_{n+1}), evaluated for **one particular** joint law of
+(X_n, Y_n) — the one whose covariance given r_n = j is the noise covariance
+Σ_W(j), i.e. the stationary law of an AB model (Proposition 3). AB implies
+(PU) for every law, so the (PU) residuals are necessary for AB, but they are
+**not sufficient**: the TAC paper (Remark "forms") gives a K = 1 example
+(A = 0.5, B = 0, C = 0.5, D = 0.3, Σ_W = I − F Fᵀ, stationary law) with (PU)
+satisfied and A − M C ≈ 0.69, and
+:func:`prg.experiments.cns_exactness.jmls_cross_annihilation_model` is a
+K = 2, q = 2 jump Markov linear system on which the regression residuals
+vanish while the constant-gain filter is biased. These diagnostics live under
+the ``pu_`` / ``compute_pu_`` names below.
 
 Public API
 ----------
@@ -36,14 +43,21 @@ compute_AB(C, D, Dt, SV) -> (A, B)
 apply_AB_constraint(params, *, logger=None) -> GSSParams
     Return a new GSSParams with each regime's (A_k, B_k) replaced by
     the closed form.
-compute_ab_residual(A, B, C, D, SU, Dt, SV) -> ndarray (s, q)
-    Same-regime (k, k) residual. Frobenius-norm-zero is *necessary* for
-    AB but not sufficient (it ignores the cross pairs j != k).
-compute_ab_pair_residual(A_k, B_k, C_k, D_k, Dt_k, SV_k, SU_j, Dt_j, SV_j) -> (q, s)
-    Pairwise residual beta_1(j, k) for the ordered pair (source j -> target k);
-    zero for all K^2 pairs <=> AB holds.
-ab_residual_max(params) -> (max_resid, (j, k))
-    Complete AB check: max pairwise residual over all ordered pairs.
+compute_ab_block_residuals(A, B, C, D, Dt, SV, *, relative=False) -> (R_A, R_B)
+    Block residuals ``A − M C`` and ``B − M D`` of one regime (optionally
+    divided by their scales).
+ab_residual_max(params, *, relative=True) -> (max_resid, (k, block))
+    The AB test: largest (relative) block residual over all regimes and both
+    blocks; 0 ⇔ the model is AB-constrained.
+compute_pu_residual(A, B, C, D, SU, Dt, SV) -> ndarray (s, q)
+    Same-regime (k, k) regression residual of (PU). Necessary for AB, not
+    sufficient (ignores the cross pairs, and is a one-law condition).
+compute_pu_pair_residual(A_k, B_k, C_k, D_k, Dt_k, SV_k, SU_j, Dt_j, SV_j) -> (q, s)
+    Pairwise regression residual β₁(j, k) of (PU) for the ordered pair
+    (source j → target k).
+pu_residual_max(params) -> (max_resid, (j, k))
+    Largest pairwise (PU) residual over all K² ordered pairs. Necessary for
+    AB, not sufficient.
 """
 
 from __future__ import annotations
@@ -60,23 +74,109 @@ __all__ = [
     "NGH_MSM_RESID_TOL",
     "apply_AB_constraint",
     "compute_AB",
-    "compute_ab_pair_residual",
-    "compute_ab_residual",
+    "compute_ab_block_residuals",
     "ab_residual_max",
+    "compute_pu_residual",
+    "compute_pu_pair_residual",
+    "pu_residual_max",
     "is_ngh_msm",
     "validate_ngh_msm",
 ]
 
-# Default tolerance on the *relative* pairwise AB residual used by
+# Default tolerance on the *relative* block AB residual used by
 # validate_ngh_msm / is_ngh_msm. Mirrors GSSFilter.AB_TOL so that a model
 # accepted here is also accepted (no warning) by mode="ngh_kf".
 NGH_MSM_RESID_TOL = 1e-6
 
 
 # ---------------------------------------------------------------------------
-# AB residual
+# AB block residuals — the AB test
 # ---------------------------------------------------------------------------
-def compute_ab_residual(
+def _rel_block(R: np.ndarray, X: np.ndarray, X_ab: np.ndarray) -> np.ndarray:
+    """``R / max(‖X‖_F, ‖X_ab‖_F)``; ``R`` itself (it is then 0) when both vanish."""
+    scale = max(float(np.linalg.norm(X, "fro")), float(np.linalg.norm(X_ab, "fro")))
+    return R / scale if scale > 0.0 else R
+
+
+def compute_ab_block_residuals(
+    A: np.ndarray,  # (q, q)
+    B: np.ndarray,  # (q, s)
+    C: np.ndarray,  # (s, q)
+    D: np.ndarray,  # (s, s)
+    Dt: np.ndarray,  # (q, s)  Δ
+    SV: np.ndarray,  # (s, s)  Σ_V
+    *,
+    relative: bool = False,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Block residuals of the AB constraint for one regime:
+
+        R_A = A − M C,        R_B = B − M D,        M = Δ Σ_V⁻¹.
+
+    ``R_A = 0`` and ``R_B = 0`` ⇔ the regime satisfies AB. With
+    ``relative=True`` the residuals are divided by the scale of the two terms
+    whose difference they are, ``max(‖A‖_F, ‖M C‖_F)`` and
+    ``max(‖B‖_F, ‖M D‖_F)`` (a zero scale leaves a zero residual), as in
+    :func:`prg.utils.exactness.cross_annihilation_residual`.
+
+    Returns
+    -------
+    (R_A, R_B) : ndarrays of shapes (q, q) and (q, s).
+
+    Raises
+    ------
+    ValueError
+        If Σ_V is singular or ill-conditioned (cf. :func:`compute_AB`).
+    """
+    A_ab, B_ab = compute_AB(C, D, Dt, SV)
+    R_A = A - A_ab
+    R_B = B - B_ab
+    if relative:
+        R_A = _rel_block(R_A, A, A_ab)
+        R_B = _rel_block(R_B, B, B_ab)
+    return R_A, R_B
+
+
+def ab_residual_max(
+    params: GSSParams,
+    *,
+    relative: bool = True,
+) -> tuple[float, tuple[int, str]]:
+    """Largest block residual of the AB constraint over all regimes.
+
+    Returns ``(max_resid, (k, block))`` where ``max_resid`` is the maximum over
+    the regimes ``k`` and the two blocks ``"A"``, ``"B"`` of
+    ``‖A_k − M_k C_k‖_F`` and ``‖B_k − M_k D_k‖_F`` (``M_k = Δ_k Σ_V,k⁻¹``) —
+    divided, when ``relative=True``, by ``max(‖A_k‖_F, ‖M_k C_k‖_F)``, resp.
+    ``max(‖B_k‖_F, ‖M_k D_k‖_F)``. ``max_resid = 0`` ⇔ the model is
+    AB-constrained (a CGOMSM2 in the TAC paper's terms), which is the exact
+    condition for the constant-gain filter; ``inf`` is returned if some
+    regime's Σ_V is singular.
+
+    This is the **complete** AB test. The regression residuals
+    :func:`pu_residual_max` / :func:`compute_pu_residual` are necessary but
+    not sufficient for AB (see the module docstring).
+    """
+    fm, nc = params.f_matrix, params.noise_cov
+    worst = 0.0
+    arg: tuple[int, str] = (0, "A")
+    for k in range(params.K):
+        try:
+            R_A, R_B = compute_ab_block_residuals(
+                fm.A(k), fm.B(k), fm.C(k), fm.D(k), nc.Delta(k), nc.Sigma_V(k), relative=relative
+            )
+        except np.linalg.LinAlgError, ValueError:
+            return float("inf"), (k, "A")
+        for block, R in (("A", R_A), ("B", R_B)):
+            r = float(np.linalg.norm(R, "fro"))
+            if r > worst:
+                worst, arg = r, (k, block)
+    return worst, arg
+
+
+# ---------------------------------------------------------------------------
+# (PU) regression residuals — diagnostics, necessary but not sufficient for AB
+# ---------------------------------------------------------------------------
+def compute_pu_residual(
     A: np.ndarray,  # (q, q)
     B: np.ndarray,  # (q, s)
     C: np.ndarray,  # (s, q)
@@ -86,7 +186,7 @@ def compute_ab_residual(
     SV: np.ndarray,  # (s, s)  Σ_V
 ) -> np.ndarray:
     """
-    Evaluate the AB algebraic constraint residual
+    Same-regime regression residual of property (PU),
 
         F = (Δᵀ Aᵀ + Σ_V Bᵀ) − P M⁻¹ (Q Aᵀ + R Bᵀ + Δᵀ),
 
@@ -97,16 +197,19 @@ def compute_ab_residual(
         R = C Δ  + D Σ_V  (= Pᵀ)    (s × s)
         M = Q Cᵀ + R Dᵀ + Σ_V       (s × s, symmetric, ≻ 0 if Σ_U, Σ_V ≻ 0).
 
-    This is the **same-regime** constraint (the regime pair ``(k, k)``). It is
-    a *necessary* condition for AB, but **not sufficient**: when the regimes
-    have different joint covariances, AB also constrains the cross pairs
-    ``(j, k)``, ``j ≠ k``. Use :func:`ab_residual_max` (or
-    :func:`compute_ab_pair_residual`) for the complete, all-pairs check.
+    ``F = 0`` ⇔ ``Cov(X_{n+1}, Y_n) = Cov(X_{n+1}, Y_{n+1}) Var(Y_{n+1})⁻¹
+    Cov(Y_{n+1}, Y_n)`` for the regime pair ``(k, k)``, when the joint
+    covariance of ``(X_n, Y_n)`` given ``r_n = k`` is taken equal to the noise
+    covariance ``Σ_W(k)`` (the stationary one of an AB model). This is a
+    **necessary** condition for AB (AB implies it for every law and every
+    pair), but **not sufficient**: it ignores the cross pairs ``(j, k)``,
+    ``j ≠ k``, and it is a condition on one particular law (the TAC paper,
+    Remark "forms"). The AB test is :func:`ab_residual_max` /
+    :func:`compute_ab_block_residuals`.
 
     Returns
     -------
-    F : ndarray of shape (s, q).  ``‖F‖ = 0`` ⇔ the same-regime ``(k, k)``
-        condition holds (necessary for AB).
+    F : ndarray of shape (s, q).
 
     Raises
     ------
@@ -123,10 +226,7 @@ def compute_ab_residual(
     return residual
 
 
-# ---------------------------------------------------------------------------
-# Pairwise AB residual — the *complete* AB-compatibility check
-# ---------------------------------------------------------------------------
-def _ab_pair_beta(
+def _pu_pair_beta(
     A_k: np.ndarray,  # (q, q)  target-regime k dynamics
     B_k: np.ndarray,  # (q, s)
     C_k: np.ndarray,  # (s, q)
@@ -137,7 +237,8 @@ def _ab_pair_beta(
     Delta_j: np.ndarray,  # (q, s)
     SV_j: np.ndarray,  # (s, s)
 ) -> np.ndarray:
-    """Regression of X_{n+1} on (Y_n, Y_{n+1}) given r_n=j, r_{n+1}=k.
+    """Regression of X_{n+1} on (Y_n, Y_{n+1}) given r_n=j, r_{n+1}=k, when the
+    joint covariance of (X_n, Y_n) given r_n = j is Σ_W(j).
 
     Returns ``beta`` of shape (q, 2s); the first s columns are the loading on
     Y_n (``beta_1``), the last s the loading on Y_{n+1}.
@@ -167,7 +268,7 @@ def _ab_pair_beta(
     return beta
 
 
-def compute_ab_pair_residual(
+def compute_pu_pair_residual(
     A_k: np.ndarray,
     B_k: np.ndarray,
     C_k: np.ndarray,
@@ -178,19 +279,21 @@ def compute_ab_pair_residual(
     Delta_j: np.ndarray,
     SV_j: np.ndarray,
 ) -> np.ndarray:
-    """Pairwise AB residual ``β₁(j, k)`` for the ordered pair (source j → target k).
+    """Pairwise regression residual ``β₁(j, k)`` of property (PU) for the
+    ordered pair (source j → target k).
 
-    AB — the Markovianity of ``(R, Y)`` — holds for the pair (j, k) iff,
-    conditionally on ``r_n = j`` and ``r_{n+1} = k``, the regression of
-    ``X_{n+1}`` on ``(Y_n, Y_{n+1})`` does *not* load on ``Y_n``. This returns
-    that loading ``β₁`` (shape ``(q, s)``); ``‖β₁‖ = 0`` ⇔ AB holds for the
-    pair. The model is AB-constrained iff ``β₁(j, k) = 0`` for **all** K²
-    ordered pairs.
+    (PU) — the conditional independence of ``X_{n+1}`` and ``Y_n`` given
+    ``(r_n = j, r_{n+1} = k, Y_{n+1})`` — holds for the pair iff the regression
+    of ``X_{n+1}`` on ``(Y_n, Y_{n+1})`` does *not* load on ``Y_n``. This
+    returns that loading ``β₁`` (shape ``(q, s)``), computed with the joint
+    covariance of ``(X_n, Y_n)`` given ``r_n = j`` taken equal to ``Σ_W(j)``,
+    the stationary one of an AB model.
 
-    The single-regime :func:`compute_ab_residual` only covers the same-regime
-    pairs ``(k, k)``: that is **necessary but not sufficient** for AB whenever
-    the regimes have different joint covariances. Use :func:`ab_residual_max`
-    for the complete check.
+    AB implies ``β₁(j, k) = 0`` for every pair, so these residuals are
+    **necessary** for AB. They are **not sufficient**: the condition is on one
+    particular law, and a model can satisfy it at every pair with
+    ``A_k ≠ M_k C_k`` (module docstring). The AB test is
+    :func:`ab_residual_max`.
 
     Target-regime arguments ``A_k, B_k, C_k, D_k`` (dynamics), ``Delta_k``
     (``Cov(W_X, W_Y | k)``), ``SV_k`` (``Var(W_Y | k)``); source-regime joint
@@ -200,24 +303,25 @@ def compute_ab_pair_residual(
     singular.
     """
     s = SV_j.shape[0]
-    return _ab_pair_beta(A_k, B_k, C_k, D_k, Delta_k, SV_k, SU_j, Delta_j, SV_j)[:, :s]
+    return _pu_pair_beta(A_k, B_k, C_k, D_k, Delta_k, SV_k, SU_j, Delta_j, SV_j)[:, :s]
 
 
-def ab_residual_max(
+def pu_residual_max(
     params: GSSParams,
     *,
     relative: bool = True,
 ) -> tuple[float, tuple[int, int]]:
-    """Largest pairwise AB residual over all K² ordered regime pairs.
+    """Largest pairwise (PU) regression residual over all K² ordered regime pairs.
 
     Returns ``(max_resid, (j, k))`` where ``max_resid`` is the maximum over all
     ordered pairs (j, k) of ``‖β₁(j, k)‖_F`` — relative to the regression scale
-    ``‖[β₁ β₂](j, k)‖_F`` when ``relative=True``. ``max_resid = 0`` ⇔ the model
-    is fully AB-constrained; ``inf`` is returned if some pair's (Y_n, Y_{n+1})
-    covariance is singular.
+    ``‖[β₁ β₂](j, k)‖_F`` when ``relative=True``; ``inf`` is returned if some
+    pair's (Y_n, Y_{n+1}) covariance is singular.
 
-    This is the **complete** AB check. :func:`compute_ab_residual` only tests
-    the same-regime pairs (necessary, not sufficient).
+    ``max_resid = 0`` is **necessary** for AB but **not sufficient** (it is a
+    condition on one particular joint law, see :func:`compute_pu_pair_residual`):
+    use :func:`ab_residual_max` to test AB. This diagnostic is the (PU)
+    property of the stationary law of an AB model; it is 0 on every AB model.
     """
     K = params.K
     A = [params.f_matrix.A(k) for k in range(K)]
@@ -234,7 +338,7 @@ def ab_residual_max(
     for j in range(K):
         for k in range(K):
             try:
-                beta = _ab_pair_beta(A[k], B[k], C[k], D[k], Dt[k], SV[k], SU[j], Dt[j], SV[j])
+                beta = _pu_pair_beta(A[k], B[k], C[k], D[k], Dt[k], SV[k], SU[j], Dt[j], SV[j])
             except np.linalg.LinAlgError:
                 return float("inf"), (j, k)
             r = float(np.linalg.norm(beta[:, :s], "fro"))
@@ -284,8 +388,12 @@ def validate_ngh_msm(
     2. ``Σ_V_k ≻ 0``          ∀ k        — symmetric positive definite;
     3. ``Γ_k = Σ_U_k − Δ_k Σ_V_k⁻¹ Δ_k^T ⪰ 0`` ∀ k — the Schur complement is a
        genuine covariance (⇔ the joint noise covariance Σ_W(k) is PSD);
-    4. AB constraint   — ``max`` relative pairwise residual ``≤ tol``,
-       i.e. ``A_k = Δ_k Σ_V_k⁻¹ C_k`` and ``B_k = Δ_k Σ_V_k⁻¹ D_k`` (up to tol).
+    4. AB constraint   — the block test of :func:`ab_residual_max`: the relative
+       residuals ``‖A_k − M_k C_k‖ / max(‖A_k‖, ‖M_k C_k‖)`` and
+       ``‖B_k − M_k D_k‖ / max(‖B_k‖, ‖M_k D_k‖)``, ``M_k = Δ_k Σ_V_k⁻¹``, are
+       ``≤ tol`` at every regime. (The pairwise regression residual
+       :func:`pu_residual_max` is weaker — it vanishes on models the
+       constant-gain filter is biased on — and is not used here.)
 
     Conditions (1)–(4) are exactly what makes the exact fast filter of
     Proposition 4 (closed form ``M_k = Δ_k Σ_V_k⁻¹``, ``Γ_k`` constant in n)
@@ -330,21 +438,17 @@ def validate_ngh_msm(
                     f"the joint noise covariance Σ_W is not PSD."
                 )
 
-    try:
-        max_rel, (j, k) = ab_residual_max(params, relative=True)
-    except (np.linalg.LinAlgError, ValueError) as exc:  # pragma: no cover - defensive
-        issues.append(f"could not evaluate the AB residual: {exc}")
-    else:
-        if not np.isfinite(max_rel):
-            issues.append(
-                "AB residual is infinite (a regime pair has a singular (Y_n, Y_{n+1}) covariance)."
-            )
-        elif max_rel > tol:
-            issues.append(
-                f"AB constraint violated: max relative pairwise residual = "
-                f"{max_rel:.3e} > tol = {tol:.1e} (worst pair j={j}, k={k}). Enforce it "
-                f"with apply_AB_constraint (A = Δ Σ_V⁻¹ C, B = Δ Σ_V⁻¹ D)."
-            )
+    max_rel, (k, block) = ab_residual_max(params, relative=True)
+    if not np.isfinite(max_rel):
+        issues.append(f"AB residual is infinite (regime {k}: Σ_V is singular or ill-conditioned).")
+    elif max_rel > tol:
+        other = "C" if block == "A" else "D"
+        issues.append(
+            f"AB constraint violated: max relative block residual "
+            f"‖{block} − M {other}‖ / max(‖{block}‖, ‖M {other}‖) = {max_rel:.3e} > tol = "
+            f"{tol:.1e} (worst: regime {k}, block {block}; M = Δ Σ_V⁻¹). Enforce it "
+            f"with apply_AB_constraint (A = Δ Σ_V⁻¹ C, B = Δ Σ_V⁻¹ D)."
+        )
 
     return issues
 

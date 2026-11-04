@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **The AB validity test is now the block test.** `prg.utils.ab_constraint.ab_residual_max`
+  used to compute the regression coefficient of X_{n+1} on Y_n given Y_{n+1} under the
+  pair-stationary joint covariance and claimed that a zero residual was equivalent to the
+  AB constraint. That condition holds for one particular law only and is strictly weaker
+  than the block identities A_r = M_r C_r and B_r = M_r D_r (M_r = Δ_r Σ_V,r⁻¹) which define
+  AB (TAC paper, Remark on the two forms): a jump Markov linear system (K = 2, q = 2,
+  s = 1) in the cross-annihilation family, with A_r − M_r C_r = [[0, 0.30], [0, 0]] and
+  [[0, −0.26], [0, 0]], had a residual of exactly 0, passed `validate_ngh_msm`, built an
+  `NGHMSMParams` and was reported `constant_gain: True` by `exactness_domains`, while the
+  constant-gain filter (`mode="ngh_kf"`) missed the exact mixture filter by 2e-3 in
+  normalized sup norm (GPB2 is exact on it, as the cross-annihilation condition says).
+  `ab_residual_max` now returns the largest relative block residual
+  ‖A_r − M_r C_r‖ / max(‖A_r‖, ‖M_r C_r‖), ‖B_r − M_r D_r‖ / max(‖B_r‖, ‖M_r D_r‖) over the
+  regimes, as `(max_resid, (k, block))`; `validate_ngh_msm`, `NGHMSMParams`,
+  `GSSFilter` (the `ngh_kf` warning), `exactness_domains(...)["constant_gain"]`, the GUI
+  (filter-mode tooltip, per-regime AB badge, which now shows the relative block residual)
+  and the AB checks of `models_paper` / `run_supervised` use it. The model is committed as
+  `prg.experiments.cns_exactness.jmls_cross_annihilation_model` and guarded by regression
+  tests in `tests/test_exactness_domains.py`, `tests/test_cns_validity.py` and
+  `tests/test_ab_constraint.py` (rejected by `validate_ngh_msm`; imm False, gpb2 True,
+  constant_gain False; constant-gain error above 1e-4 while GPB2 is below 1e-12; the
+  built-in models and GUI presets, AB by construction, stay accepted).
+
+### Changed
+- The pairwise regression residuals are kept as diagnostics of property (PU) — the
+  conditional independence of X_{n+1} and Y_n given (R_n, R_{n+1}, Y_{n+1}) for the
+  stationary law of an AB model — under new names: `compute_ab_residual` →
+  `compute_pu_residual`, `compute_ab_pair_residual` → `compute_pu_pair_residual`, and the
+  former all-pairs `ab_residual_max` → `pu_residual_max`. They are necessary for AB, not
+  sufficient. New `compute_ab_block_residuals(A, B, C, D, Δ, Σ_V, relative=False)` returns
+  the two block residuals of one regime. `tests/test_no_stale_refs.py` forbids the old
+  names.
+
 ### Added
 - **`prg/filter/gss_smoother.py`** — exact O(N K²) fixed-interval smoothers on the
   exactness domains (the smoothing companion paper): `regime_smoother` (HMM
