@@ -1,6 +1,6 @@
 """Machine-precision checks of the IMM/GPB2 exactness domains (TSP paper).
 
-Eleven experiments back the numbers quoted in the exactness-domains paper
+Twelve experiments back the numbers quoted in the exactness-domains paper
 (docs/CNS-exactness):
 
 E1  IMM realizes the CGOMSM1 exact filter: on a genuine CGOMSM1 (C=0, state
@@ -54,6 +54,19 @@ E11 The (R,Y)-Markov class: (R,Y) is a Markov chain iff the observation rows
     CGOMSM2 regime posterior is exact while its state read-out is not; moving
     the input residual out of the kernel of the channel breaks the regime
     recursion.
+E12 A classical jump Markov linear system (separate measurement equation,
+    independent noises u and v, Sigma_v > 0) outside both branches on which
+    GPB2 is exact: q=2, s=1, H = [1 0], A*_r = kappa_r [[0,1],[0,0]]. The
+    measured coordinate is renewed at every step from the unmeasured one,
+    which is white. The embedded blocks have C_r = H A*_r != 0 (not CGOMSM1)
+    and N_r = (I - M_r H) A*_r != 0 (not AB), yet with a diagonal Sigma_u the
+    cross-annihilation H A*_k (I - M_j H) A*_j = 0 holds for every pair:
+    GPB2 is exact, the IMM is not. A full Sigma_u moves M_j off e_1, breaks
+    the cross-annihilation and biases GPB2. The model also lies in the
+    (R,Y)-Markov class (B = D = 0), so the CGOMSM2 regime recursion is exact
+    on it while its constant read-out is not (Corollary (R,Y) (ii) with a
+    JMLS). On the classical form the GPB2 domain is therefore not empty for
+    q > s.
 
 Numbering follows the order of the paper's Section VI (E1-E7), Remark
 '(G2) is sharp' (E8) and Remark '(G3) and the initialization quantifier' (E9); before 2026-09-03 the time profiles were E8 and
@@ -421,6 +434,51 @@ def ry_markov_model(residual_in_kernel=True, beta=(0.2, -0.15), p_switch=0.10):
     return with_stationary_init(p)
 
 
+def jmls_model(kappas=(0.8, -0.5), full_su=False, p_switch=0.10):
+    """E12: a genuine jump Markov linear system, x_{n+1} = A*_r x_n + u_{n+1},
+    y_n = H x_n + v_n, with independent noises and Sigma_v > 0, embedded as
+    a pair model (C_r = H A*_r, B_r = D_r = 0, Delta_r = Sigma_u,r H^T,
+    Sigma_V,r = H Sigma_u,r H^T + Sigma_v,r). Here q=2, s=1, H = [1 0] and
+    A*_r = kappa_r [[0, 1], [0, 0]]: the measured coordinate is renewed at
+    every step from the unmeasured one, which is white. Then C_r != 0 (not
+    CGOMSM1) and N_r = (I - M_r H) A*_r != 0 (not AB) at both regimes. With
+    diagonal Sigma_u (default) M_r is along e_1, so C_k N_j = H A*_k (I -
+    M_j H) A*_j = 0 for every pair: a JMLS outside both branches inside the
+    GPB2 domain. With ``full_su=True`` M_r acquires a second component and
+    C_k N_j != 0."""
+    from prg.classes.FMatrix import FMatrix as _FM
+    from prg.classes.NoiseCovariance import GSSNoiseCovariance as _NC
+
+    K, q, s = 2, 2, 1
+    P = np.array([[1 - p_switch, p_switch], [p_switch, 1 - p_switch]])
+    H = np.array([[1.0, 0.0]])
+    if full_su:
+        Su = [np.array([[0.5, 0.2], [0.2, 1.0]]), np.array([[0.8, -0.3], [-0.3, 0.6]])]
+    else:
+        Su = [np.diag([0.5, 1.0]), np.diag([0.8, 0.6])]
+    Sv = [np.array([[0.3]]), np.array([[0.9]])]
+    A = [kap * np.array([[0.0, 1.0], [0.0, 0.0]]) for kap in kappas]
+    B = [np.zeros((q, s)) for _ in range(K)]
+    C = [H @ A[k] for k in range(K)]
+    D = [np.zeros((s, s)) for _ in range(K)]
+    Dt = [Su[k] @ H.T for k in range(K)]
+    SV = [H @ Su[k] @ H.T + Sv[k] for k in range(K)]
+    fm = _FM(K, q, s, A, B, C, D)
+    nc = _NC(K, q, s, Su, Dt, SV)
+    p = GSSParams(
+        K=K,
+        q=q,
+        s=s,
+        P=P,
+        f_matrix=fm,
+        noise_cov=nc,
+        pi0=None,
+        mu_z0_list=[np.zeros((q + s, 1)) for _ in range(K)],
+        Sigma_z0_list=[np.eye(q + s) for _ in range(K)],
+    )
+    return with_stationary_init(p)
+
+
 def _with_init(params, mu_list, Sigma_list):
     """Copy of ``params`` with the given per-regime initial laws for Z_1."""
     K = params.K
@@ -737,6 +795,38 @@ def exp11_ry_markov():
     return out
 
 
+def exp12_jmls_outside_branches():
+    """E12: a classical jump system (separate measurement equation, Sigma_v > 0)
+    outside both branches on which GPB2 is exact and the IMM is not; a full
+    state-noise covariance breaks the cross-annihilation and biases GPB2. The
+    model is also (R,Y)-Markov, so the CGOMSM2 regime recursion is exact on
+    it while its constant read-out is not."""
+    from prg.utils.exactness import gpb2_domain_residual, imm_domain_residual
+
+    print("E12 JMLS q=2, s=1, H=[1 0], A*_r = kappa_r e_1 e_2^T (H A*_r != 0, N_r != 0 at both regimes):")
+    out = {}
+    for tag, full in (("Sigma_u diagonal [C_k N_j = 0] ", False), ("Sigma_u full     [C_k N_j != 0]", True)):
+        p = jmls_model(full_su=full)
+        g = gaps(p, with_cg=not full)
+        out[full] = g
+        n_ab = max(
+            float(np.max(np.abs(p.f_matrix.A(k) - p.noise_cov.M(k) @ p.f_matrix.C(k))))
+            for k in range(p.K)
+        )
+        print(
+            f"    {tag}  residuals: IMM {imm_domain_residual(p):.2f}, GPB2 {gpb2_domain_residual(p):.1e},"
+            f" max|A-MC| {n_ab:.2f}"
+        )
+        line = (
+            f"      GPB2 E_x {g['gpb2'][0]:<22} post {g['gpb2'][2]:<22}"
+            f"| IMM E_x {g['imm'][0]:<22} post {g['imm'][2]}"
+        )
+        if not full:
+            line += f"\n      CGOMSM2 post {g['cg'][2]:<22} E_x {g['cg'][0]}"
+        print(line)
+    return out
+
+
 def main():
     print(
         f"Exactness-domain checks -- ground truth: exact K^N mixture filter "
@@ -763,6 +853,8 @@ def main():
     exp10_cross_annihilation()
     print()
     exp11_ry_markov()
+    print()
+    exp12_jmls_outside_branches()
 
 
 if __name__ == "__main__":

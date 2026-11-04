@@ -9,6 +9,7 @@ from prg.experiments.cns_exactness import (
     cross_annihilation_model,
     g2_degenerate_model,
     g2_vector_model,
+    jmls_model,
     mixed_branch_model,
     off_union_model,
     slaving_A_model,
@@ -119,3 +120,30 @@ def test_assumption_g2_reads_the_state_informed_part_not_the_whole_row():
     # regime-dependent and restores (G2)
     g = assumption_g(g2_vector_model(couple=True))
     assert g["g2"] and g["g2_channel"] > 1e-3, g
+
+
+def test_jmls_outside_both_branches_is_on_the_gpb2_domain():
+    """E12: a classical jump system (H = [1 0], A*_r = kappa_r e_1 e_2^T,
+    Sigma_v > 0) with C_r != 0 and A_r != M_r C_r at both regimes, yet
+    C_k N_j = 0 for every pair when Sigma_u is diagonal; a full Sigma_u
+    breaks the cross-annihilation."""
+    import numpy as np
+
+    from prg.experiments.cns_exactness import gaps
+
+    p_in, p_out = jmls_model(full_su=False), jmls_model(full_su=True)
+    for p in (p_in, p_out):
+        assert imm_domain_residual(p) > 1e-2
+        n_ab = max(
+            float(np.max(np.abs(p.f_matrix.A(k) - p.noise_cov.M(k) @ p.f_matrix.C(k))))
+            for k in range(p.K)
+        )
+        assert n_ab > 0.1
+        assert assumption_g(p)["g"]
+    assert gpb2_domain_residual(p_in) < 1e-12
+    assert gpb2_domain_residual(p_out) > 1e-3
+    g_in = gaps(p_in, n_seeds=5)
+    g_out = gaps(p_out, n_seeds=5)
+    assert g_in["gpb2"][0].hi < 1e-12 and g_in["gpb2"][2].hi < 1e-12
+    assert g_in["imm"][0].med > 1e-4
+    assert g_out["gpb2"][0].med > 1e-7

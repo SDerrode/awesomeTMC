@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **`prg/experiments/cns_exactness.py` (E12)** — `jmls_model(kappas, full_su, p_switch)` and
+  `exp12_jmls_outside_branches()`: a classical jump Markov linear system (separate
+  measurement equation, independent noises, `Σ_v > 0`; `q=2`, `s=1`, `H=[1 0]`,
+  `A*_r = κ_r e₁e₂ᵀ`) whose embedded blocks have `C_r ≠ 0` and `A_r ≠ M_r C_r` at both
+  regimes, yet `C_k N_j = 0` for every pair when `Σ_u` is diagonal: GPB2 is exact on it
+  (1.6e-15) and the IMM is not (5e-4); a full `Σ_u` breaks the cross-annihilation and
+  biases GPB2 (2e-6). The GPB2 domain restricted to classical jump systems is therefore
+  not empty for `q > s` (TSP paper, Remark "Where the classical jump system sits" and
+  supplement §S-V). Regression test in `tests/test_exactness_domains.py`.
 - **`prg/filter/gss_smoother.py`** — exact O(N K²) fixed-interval smoothers on the
   exactness domains (the smoothing companion paper): `regime_smoother` (HMM
   forward-backward on the observed chain, kernels `ab` / `c0` / `lag1`),
