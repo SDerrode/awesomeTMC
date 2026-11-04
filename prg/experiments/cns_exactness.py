@@ -803,9 +803,14 @@ def exp12_jmls_outside_branches():
     it while its constant read-out is not."""
     from prg.utils.exactness import gpb2_domain_residual, imm_domain_residual
 
-    print("E12 JMLS q=2, s=1, H=[1 0], A*_r = kappa_r e_1 e_2^T (H A*_r != 0, N_r != 0 at both regimes):")
+    print(
+        "E12 JMLS q=2, s=1, H=[1 0], A*_r = kappa_r e_1 e_2^T (H A*_r != 0, N_r != 0 at both regimes):"
+    )
     out = {}
-    for tag, full in (("Sigma_u diagonal [C_k N_j = 0] ", False), ("Sigma_u full     [C_k N_j != 0]", True)):
+    for tag, full in (
+        ("Sigma_u diagonal [C_k N_j = 0] ", False),
+        ("Sigma_u full     [C_k N_j != 0]", True),
+    ):
         p = jmls_model(full_su=full)
         g = gaps(p, with_cg=not full)
         out[full] = g
