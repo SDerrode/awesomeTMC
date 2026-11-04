@@ -9,6 +9,7 @@ from prg.experiments.cns_exactness import (
     cross_annihilation_model,
     g2_degenerate_model,
     g2_vector_model,
+    jmls_cross_annihilation_model,
     mixed_branch_model,
     off_union_model,
     slaving_A_model,
@@ -119,3 +120,36 @@ def test_assumption_g2_reads_the_state_informed_part_not_the_whole_row():
     # regime-dependent and restores (G2)
     g = assumption_g(g2_vector_model(couple=True))
     assert g["g2"] and g["g2_channel"] > 1e-3, g
+
+
+def test_jmls_in_cross_annihilation_family_is_not_constant_gain_exact():
+    """Regression: a JMLS (K=2, q=2, s=1) with A_r - M_r C_r != 0 whose rows
+    annihilate every memory. The former pairwise regression test accepted it as
+    AB (residual exactly 0) although the constant-gain filter is biased on it;
+    the block test rejects it. GPB2 is exact (cross-annihilation)."""
+    import numpy as np
+
+    from prg.experiments.cns_exactness import _rel, _run_cg
+    from prg.experiments.reference_filters import exact_mixture_filter, gpb2_filter
+    from prg.experiments.study import _simulate
+    from prg.utils.ab_constraint import ab_residual_max, pu_residual_max, validate_ngh_msm
+
+    p = jmls_cross_annihilation_model()
+    # the blocks: A_r - M_r C_r = [[0, 0.30], [0, 0]] and [[0, -0.26], [0, 0]]
+    for r, off in ((0, 0.3), (1, -0.9 / 3.4)):
+        N = p.f_matrix.A(r) - p.noise_cov.M(r) @ p.f_matrix.C(r)
+        np.testing.assert_allclose(N, [[0.0, off], [0.0, 0.0]], atol=1e-12)
+    assert pu_residual_max(p)[0] < 1e-12  # the regression residual sees nothing
+    assert ab_residual_max(p)[0] > 0.1  # the block test does
+    assert any("AB constraint violated" in m for m in validate_ngh_msm(p))
+    d = exactness_domains(p)
+    assert d == {"imm": False, "gpb2": True, "constant_gain": False, "assumption_g": True}
+
+    worst_cg = worst_gpb2 = 0.0
+    for seed in range(700, 710):
+        _, _, ys = _simulate(p, 10, seed=seed)
+        ex_exact = exact_mixture_filter(p, ys)[0]
+        worst_cg = max(worst_cg, _rel(_run_cg(p, ys)[0], ex_exact))
+        worst_gpb2 = max(worst_gpb2, _rel(gpb2_filter(p, ys)[0], ex_exact))
+    assert worst_cg > 1e-4, f"constant-gain filter unexpectedly exact: {worst_cg:.2e}"
+    assert worst_gpb2 < 1e-12, f"GPB2 should be exact: {worst_gpb2:.2e}"

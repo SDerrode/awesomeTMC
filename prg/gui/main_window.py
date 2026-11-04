@@ -277,9 +277,11 @@ class GSSMainWindow(QMainWindow):
             "CGOMSM2-KF   — stationary pre-computed moments, no covariance\n"
             "               recursion, so its cost does not grow with the state\n"
             "               dimension. Exact only under the AB constraint\n"
-            "               A = Δ Σ_V⁻¹ C, B = Δ Σ_V⁻¹ D; emits a warning when\n"
-            "               the residual exceeds the tolerance. Tick the\n"
-            "               per-regime 'AB constraint' to enforce it."
+            "               A = Δ Σ_V⁻¹ C, B = Δ Σ_V⁻¹ D, checked block by block\n"
+            "               at every regime (relative residuals ‖A − MC‖ and\n"
+            "               ‖B − MD‖, M = Δ Σ_V⁻¹); emits a warning when one\n"
+            "               exceeds the tolerance. Tick the per-regime\n"
+            "               'AB constraint' to enforce it."
         )
         mode_row.addWidget(self._mode_combo)
         mode_row.addStretch()

@@ -173,6 +173,42 @@ def test_non_ab_model_is_flagged():
     assert any("AB constraint violated" in m for m in issues)
 
 
+def test_jmls_off_ab_is_rejected_by_the_block_test():
+    """Regression: a JMLS in the cross-annihilation family (q=2, s=1) that is
+    not AB. The pairwise regression residual is exactly 0 on it, so the former
+    test accepted it; the block test flags block A (worst at regime 1, where
+    the relative residual is 0.53 against 0.375 at regime 0)."""
+    from prg.experiments.cns_exactness import jmls_cross_annihilation_model
+    from prg.utils.ab_constraint import ab_residual_max, pu_residual_max
+
+    p = jmls_cross_annihilation_model()
+    assert pu_residual_max(p)[0] < 1e-12
+    max_rel, (k, block) = ab_residual_max(p)
+    assert max_rel > 0.5 and (k, block) == (1, "A")
+    issues = validate_ngh_msm(p)
+    assert len(issues) == 1 and "AB constraint violated" in issues[0], issues
+    assert "block A" in issues[0] and "regime 1" in issues[0]
+    assert not is_ngh_msm(p)
+    with pytest.raises(ParamError):
+        NGHMSMParams(
+            K=p.K,
+            q=p.q,
+            s=p.s,
+            P=p.P,
+            f_matrix=p.f_matrix,
+            noise_cov=p.noise_cov,
+            pi0=p.pi0,
+            mu_z0_list=[p.mu_z0(k) for k in range(p.K)],
+            Sigma_z0_list=[p.Sigma_z0(k) for k in range(p.K)],
+            b_list=[p.b(k) for k in range(p.K)],
+        )
+    # the models that are AB by construction stay accepted by the block test
+    assert validate_ngh_msm(GSSParams.from_model(ModelGssK2Q1S1())) == []
+    assert ab_residual_max(GSSParams.from_model(ModelGssK2Q1S1()))[0] < 1e-12
+    for entry in PRESETS:
+        assert ab_residual_max(GSSParams.from_model(entry.load()))[0] < 1e-12, entry.module_name
+
+
 def test_singular_D_is_now_valid():
     # D-invertibility is no longer required (corrected Proposition 2 needs only
     # Σ_V ≻ 0): an AB-constrained model with D(0) singular is a valid CGOMSM2.

@@ -108,29 +108,46 @@ Recompute \(A(k)\) and \(B(k)\) for every regime from
 
 Same, for a single regime. Returns the tuple `(A, B)`.
 
-### `compute_ab_residual(A, B, C, D, Su, Delta, Sv)`
+### `compute_ab_block_residuals(A, B, C, D, Delta, Sv, *, relative=False)`
 
-Frobenius-norm residual of the **same-regime** \((k, k)\) AB algebraic
-identity
-\(\Delta^T A^T + \Sigma_V B^T - P M^{-1}(Q A^T + R B^T + \Delta^T)\).
-Returns a `(s, q)` array. \(\|F\|_F = 0\) is **necessary but not
-sufficient** for AB: when regimes have different joint covariances,
-AB also constrains the cross pairs \((j, k)\), \(j \neq k\).
-
-### `compute_ab_pair_residual(A_k, B_k, C_k, D_k, Delta_k, Sv_k, Su_j, Delta_j, Sv_j)`
-
-Pairwise residual \(\beta_1(j, k)\) (shape `(q, s)`) — the loading on
-\(Y_n\) of the regression of \(X_{n+1}\) on \((Y_n, Y_{n+1})\) given
-\(r_n = j,\ r_{n+1} = k\). \(\|\beta_1(j, k)\| = 0\) for **all** \(K^2\)
-ordered pairs \(\iff\) AB holds.
+Block residuals of the AB constraint for one regime,
+\(R_A = A - M C\) and \(R_B = B - M D\) with \(M = \Delta \Sigma_V^{-1}\)
+(shapes `(q, q)` and `(q, s)`). Both vanish \(\iff\) the regime satisfies
+AB. With `relative=True` each is divided by the scale of the two terms of
+its difference, \(\max(\|A\|_F, \|M C\|_F)\), resp.
+\(\max(\|B\|_F, \|M D\|_F)\).
 
 ### `ab_residual_max(params, *, relative=True)`
 
-The **complete** AB check. Returns `(max_resid, (j, k))`: the largest
-pairwise residual over all \(K^2\) ordered pairs (normalised by the
-regression scale when `relative=True`). `max_resid == 0` \(\iff\) the
-model is fully AB-constrained. This is the test `GSSFilter` uses to
-decide whether to emit the `ngh_kf` warning.
+The AB test. Returns `(max_resid, (k, block))`: the largest (relative) block
+residual over all regimes \(k\) and both blocks `"A"`, `"B"`.
+`max_resid == 0` \(\iff\) the model is AB-constrained. This is the test
+used by `validate_ngh_msm`, `exactness_domains` and `GSSFilter` (the
+`ngh_kf` warning).
+
+### `compute_pu_residual(A, B, C, D, Su, Delta, Sv)`
+
+Same-regime \((k, k)\) regression residual of property (PU) — the
+conditional independence of \(X_{n+1}\) and \(Y_n\) given
+\((R_n, R_{n+1}, Y_{n+1})\) — for the joint law of \((X_n, Y_n)\) whose
+covariance given \(r_n = k\) is \(\Sigma_W(k)\) (the stationary law of an AB
+model): \(\Delta^T A^T + \Sigma_V B^T - P M^{-1}(Q A^T + R B^T + \Delta^T)\),
+a `(s, q)` array. **Necessary but not sufficient** for AB: it ignores the
+cross pairs, and it is a condition on one particular law.
+
+### `compute_pu_pair_residual(A_k, B_k, C_k, D_k, Delta_k, Sv_k, Su_j, Delta_j, Sv_j)`
+
+Pairwise (PU) residual \(\beta_1(j, k)\) (shape `(q, s)`) — the loading on
+\(Y_n\) of the regression of \(X_{n+1}\) on \((Y_n, Y_{n+1})\) given
+\(r_n = j,\ r_{n+1} = k\), for the same particular law.
+
+### `pu_residual_max(params, *, relative=True)`
+
+Returns `(max_resid, (j, k))`: the largest pairwise (PU) residual over all
+\(K^2\) ordered pairs (normalised by the regression scale when
+`relative=True`). It is 0 on every AB model, but also on models that are not
+AB (e.g. the JMLS `prg.experiments.cns_exactness.jmls_cross_annihilation_model`,
+on which the constant-gain filter is biased): a diagnostic, not the AB test.
 
 ### Error hierarchy
 
