@@ -96,6 +96,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   error falls with `L` — `L=2` beats the pair-RTS only for the weakest violation
   (`η=0.02`), `L=3` on all points but the two strongest violations, `L=5` on all four
   directions at every `η` tested (by a factor 1.5 to 19).
+- ``.github/workflows/publish.yml``: PyPI publication through trusted publishing (OIDC, no
+  stored token). A published GitHub Release builds, checks that the tag matches the
+  ``pyproject.toml`` version, runs ``twine check --strict`` and uploads to PyPI; a manual
+  run only targets TestPyPI. Not active until the trusted publisher is declared on PyPI.
 
 ## [3.2.1] — 2026-10-30
 
