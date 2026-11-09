@@ -18,7 +18,7 @@ audit/
 /data/simulated/*
 !/data/simulated/.gitkeep
 
-# Monte-Carlo simulation outputs (large; regenerable via prg.experiments.run_*)
+# Monte-Carlo simulation outputs (large; regenerable via awesometmc.experiments.run_*)
 data/experiments/*.csv
 data/experiments/*.log
 
@@ -41,7 +41,7 @@ logs/*
 !/logs/.gitkeep
 
 # Personal dev test scripts and programs (not versioned)
-# /prg/testsDev/
+# /awesometmc/testsDev/
 
 # VSCodium / VSCode
 awesomeTMC.code-workspace

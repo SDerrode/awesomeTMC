@@ -71,16 +71,16 @@ from pathlib import Path
 
 import numpy as np
 
-# Project root on sys.path so we can import prg.* regardless of CWD.
+# Project root on sys.path so we can import awesometmc.* regardless of CWD.
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from prg.classes.FMatrix import FMatrix  # noqa: E402
-from prg.classes.GSSParams import GSSParams  # noqa: E402
-from prg.classes.GSSSimulator import GSSSimulator  # noqa: E402
-from prg.classes.NoiseCovariance import GSSNoiseCovariance  # noqa: E402
-from prg.utils.ab_constraint import apply_AB_constraint, compute_AB  # noqa: E402
+from awesometmc.classes.FMatrix import FMatrix  # noqa: E402
+from awesometmc.classes.GSSParams import GSSParams  # noqa: E402
+from awesometmc.classes.GSSSimulator import GSSSimulator  # noqa: E402
+from awesometmc.classes.NoiseCovariance import GSSNoiseCovariance  # noqa: E402
+from awesometmc.utils.ab_constraint import apply_AB_constraint, compute_AB  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -186,13 +186,13 @@ def make_random_AB_params(
 
 def load_named_model(name: str) -> GSSParams:
     """
-    Load a model from `prg.models.<name>`, apply the AB constraint, and
+    Load a model from `awesometmc.models.<name>`, apply the AB constraint, and
     force the biases to zero so that the comparison stays inside the
     paper's (21)-(22) framework.
     """
-    module = importlib.import_module(f"prg.models.{name}")
+    module = importlib.import_module(f"awesometmc.models.{name}")
     # Pick the first BaseGSSModel subclass found in the module
-    from prg.models.base_gss_model import BaseGSSModel
+    from awesometmc.models.base_gss_model import BaseGSSModel
 
     model_cls = None
     for attr_name in dir(module):
@@ -201,7 +201,7 @@ def load_named_model(name: str) -> GSSParams:
             model_cls = obj
             break
     if model_cls is None:
-        raise ValueError(f"No BaseGSSModel subclass found in prg.models.{name}.")
+        raise ValueError(f"No BaseGSSModel subclass found in awesometmc.models.{name}.")
     params = GSSParams.from_model(model_cls())
     params = apply_AB_constraint(params)
     # Rebuild with zero biases (so that paper's formulas (21)-(22) apply
@@ -429,7 +429,7 @@ def main() -> int:
         "--model",
         type=str,
         default=None,
-        help="Name of a model in prg/models/ (e.g. "
+        help="Name of a model in awesometmc/models/ (e.g. "
         "'model_gss_K2_q2_s2'). Biases are reset to zero "
         "and the AB constraint is applied before testing.",
     )
@@ -467,7 +467,7 @@ def main() -> int:
     rng = np.random.default_rng(args.seed)
 
     if args.model is not None:
-        print(f"Loading model: prg.models.{args.model}  (biases zeroed, AB constraint applied)\n")
+        print(f"Loading model: awesometmc.models.{args.model}  (biases zeroed, AB constraint applied)\n")
         params = load_named_model(args.model)
         params.summary() if args.verbose else None
         results = [compare_one_model(params, N_traj=args.n_traj, seed=args.seed, verbose=True)]

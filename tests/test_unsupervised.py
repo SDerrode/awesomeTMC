@@ -3,7 +3,7 @@
 tests/test_unsupervised.py
 ==========================
 Guards for the Y-only exact EM on the ``{C≡0}`` family
-(``prg/learning/unsupervised.py``), following the P5 validation protocol:
+(``awesometmc/learning/unsupervised.py``), following the P5 validation protocol:
 
 - T1: the E-step posteriors equal the exact Kᴺ path-enumeration posteriors;
 - T2: the EM iterates are identical when the E-step is swapped for the exact
@@ -17,12 +17,12 @@ from __future__ import annotations
 
 import numpy as np
 
-from prg.classes.GSSSimulator import GSSSimulator
-from prg.experiments.cns_exactness import _params
-from prg.experiments.reference_filters import imm_filter
-from prg.experiments.reference_smoothers import exact_mixture_smoother
-from prg.filter.gss_smoother import chain_log_likelihood
-from prg.learning.unsupervised import (
+from awesometmc.classes.GSSSimulator import GSSSimulator
+from awesometmc.experiments.cns_exactness import _params
+from awesometmc.experiments.reference_filters import imm_filter
+from awesometmc.experiments.reference_smoothers import exact_mixture_smoother
+from awesometmc.filter.gss_smoother import chain_log_likelihood
+from awesometmc.learning.unsupervised import (
     _estep,
     _mstep,
     c0_chain_to_gss,

@@ -64,4 +64,4 @@ references:
       - given-names: Stéphane
         family-names: Derrode
     year: 2026
-    notes: "In preparation. Its experiments are prg/experiments/cns_exactness.py and prg/experiments/make_cns_figures.py; its exactness domains are tested by prg/utils/exactness.py."
+    notes: "In preparation. Its experiments are awesometmc/experiments/cns_exactness.py and awesometmc/experiments/make_cns_figures.py; its exactness domains are tested by awesometmc/utils/exactness.py."

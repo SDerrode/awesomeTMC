@@ -8,8 +8,8 @@ Unit tests for GSSNoiseCovariance.
 import numpy as np
 import pytest
 
-from prg.classes.NoiseCovariance import GSSNoiseCovariance
-from prg.utils.exceptions import CovarianceError, ParamError
+from awesometmc.classes.NoiseCovariance import GSSNoiseCovariance
+from awesometmc.utils.exceptions import CovarianceError, ParamError
 
 # ---------------------------------------------------------------------------
 # Helpers

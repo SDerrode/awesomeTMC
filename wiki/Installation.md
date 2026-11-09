@@ -49,10 +49,10 @@ pip install -e ".[gui,paper,dev]" # everything
 pytest
 
 # Smoke-test the simulator
-python -m prg.simulate --model model_gss_K2_q1_s1 -N 100 --seed 0 --no-save
+python -m awesometmc.simulate --model model_gss_K2_q1_s1 -N 100 --seed 0 --no-save
 
 # Smoke-test the filter
-python -m prg.filter.main --model model_gss_K2_q1_s1 -N 100 --seed 0 --no-save
+python -m awesometmc.filter.main --model model_gss_K2_q1_s1 -N 100 --seed 0 --no-save
 ```
 
 If `pytest` reports `235 passed` and the two CLI calls finish without

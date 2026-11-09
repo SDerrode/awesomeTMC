@@ -7,9 +7,9 @@ the filter output interactively.
 
 ```bash
 pip install -e ".[gui]"
-python -m prg.gui.main -K 2 -q 1 -s 1
+python -m awesometmc.gui.main -K 2 -q 1 -s 1
 # or pre-fill from an existing model
-python -m prg.gui.main --model model_gss_K2_q1_s1
+python -m awesometmc.gui.main --model model_gss_K2_q1_s1
 ```
 
 ## Layout

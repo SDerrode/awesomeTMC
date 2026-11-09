@@ -60,7 +60,7 @@ regime-pair equations of AB trivially satisfied. The free blocks per
 regime become $(C, D, \Sigma_U, \Sigma_V, \Delta)$.
 
 ```python
-from prg.utils.ab_constraint import compute_AB, apply_AB_constraint
+from awesometmc.utils.ab_constraint import compute_AB, apply_AB_constraint
 
 # Single regime: closed-form helper
 A, B = compute_AB(C, D, Delta, Sigma_V)
@@ -165,16 +165,16 @@ After running any of these, `pip --version` from within the venv should report `
 
 ```bash
 # Basic run: 1 000 steps, reproducible seed
-python -m prg.simulate --model model_gss_K2_q1_s1 -N 1000 --seed 42
+python -m awesometmc.simulate --model model_gss_K2_q1_s1 -N 1000 --seed 42
 
 # Dry run (no CSV written), full debug output
-python -m prg.simulate --model model_gss_K2_q1_s1 -N 500 --no-save --log-level DEBUG -v 2
+python -m awesometmc.simulate --model model_gss_K2_q1_s1 -N 500 --no-save --log-level DEBUG -v 2
 
 # Enforce AB constraint: A, B from (C, D, Δ, Σ_V) before simulating
-python -m prg.simulate --model model_gss_K2_q1_s1 -N 1000 --seed 42 --constraint
+python -m awesometmc.simulate --model model_gss_K2_q1_s1 -N 1000 --seed 42 --constraint
 
 # Custom output directory
-python -m prg.simulate --model model_gss_K2_q1_s1 -N 2000 --seed 0 --output my_run.csv
+python -m awesometmc.simulate --model model_gss_K2_q1_s1 -N 2000 --seed 0 --output my_run.csv
 ```
 
 Output CSV columns: `n, r, x_0, …, x_{q-1}, y_0, …, y_{s-1}`  
@@ -184,7 +184,7 @@ Log files are written automatically to `logs/`.
 
 | Option | Default | Description |
 |---|---|---|
-| `--model` | — | Model name in `prg/models/` (required) |
+| `--model` | — | Model name in `awesometmc/models/` (required) |
 | `-N` | — | Number of time steps (required) |
 | `--seed` | `None` | Random seed (omit for non-deterministic) |
 | `--output` | auto | Output CSV filename |
@@ -201,17 +201,17 @@ The filter computes $\mathbb{E}[X_n \mid Y_{1:n}]$, $\mathbb{E}[X_nX_n^T \mid Y_
 
 ```bash
 # Simulate 1 000 steps and filter in one command
-python -m prg.filter.main --model model_gss_K2_q1_s1 -N 1000 --seed 42
+python -m awesometmc.filter.main --model model_gss_K2_q1_s1 -N 1000 --seed 42
 
 # Filter from an existing simulation CSV
-python -m prg.filter.main --model model_gss_K2_q1_s1 \
+python -m awesometmc.filter.main --model model_gss_K2_q1_s1 \
     --csv data/simulated/simulated_model_gss_K2_q1_s1_N1000_seed42.csv
 
 # Enforce AB constraint before filtering
-python -m prg.filter.main --model model_gss_K2_q1_s1 -N 1000 --seed 42 --constraint
+python -m awesometmc.filter.main --model model_gss_K2_q1_s1 -N 1000 --seed 42 --constraint
 
 # Dry run (no CSV written)
-python -m prg.filter.main --model model_gss_K2_q1_s1 -N 500 --no-save -v 2
+python -m awesometmc.filter.main --model model_gss_K2_q1_s1 -N 500 --no-save -v 2
 ```
 
 Output CSV columns: `n, E_x_0, …, E_x_{q-1}, V_x_0, …, V_x_{q-1}, p_r_0, …, p_r_{K-1}, sq_err`
@@ -227,7 +227,7 @@ Output CSV columns: `n, E_x_0, …, E_x_{q-1}, V_x_0, …, V_x_{q-1}, p_r_0, …
 
 | Option | Default | Description |
 |---|---|---|
-| `--model` | — | Model name in `prg/models/` (required) |
+| `--model` | — | Model name in `awesometmc/models/` (required) |
 | `--csv` | `None` | Path to an existing simulation CSV |
 | `-N` | — | Steps to simulate (required without `--csv`) |
 | `--seed` | `None` | Random seed for simulation |
@@ -240,9 +240,9 @@ Output CSV columns: `n, E_x_0, …, E_x_{q-1}, V_x_0, …, V_x_{q-1}, p_r_0, …
 ### Python API
 
 ```python
-from prg.classes.GSSParams import GSSParams
-from prg.models.model_gss_K2_q1_s1 import ModelGssK2Q1S1
-from prg.filter import GSSFilter
+from awesometmc.classes.GSSParams import GSSParams
+from awesometmc.models.model_gss_K2_q1_s1 import ModelGssK2Q1S1
+from awesometmc.filter import GSSFilter
 
 params = GSSParams.from_model(ModelGssK2Q1S1())
 filt   = GSSFilter(params)
@@ -265,7 +265,7 @@ sim_path, df = filt.run(N=1000, seed=42, output_dir="data/simulated")
 ### AB constraint API
 
 ```python
-from prg.utils.ab_constraint import (
+from awesometmc.utils.ab_constraint import (
     apply_AB_constraint, compute_AB, compute_ab_residual,
 )
 
@@ -287,17 +287,17 @@ The GUI requires `pip install -e ".[gui]"` (PyQt6 + matplotlib).
 
 ```bash
 # Standalone launch: choose K, q, s interactively
-python -m prg.gui.main -K 2 -q 1 -s 1
+python -m awesometmc.gui.main -K 2 -q 1 -s 1
 
 # Pre-fill from an existing model file
-python -m prg.gui.main --model model_gss_K2_q1_s1
+python -m awesometmc.gui.main --model model_gss_K2_q1_s1
 ```
 
 **Left panel — Parameters**
 
 | Widget | Description |
 |---|---|
-| Preset selector | Load any model from `prg/models/` in one click; triggers a full window restart when K, q, or s differ |
+| Preset selector | Load any model from `awesometmc/models/` in one click; triggers a full window restart when K, q, or s differ |
 | Parameter tabs | One tab per Markov state; editable F(k), Σ_W(k), μ_{z0}(k), b(k) with block colour coding (A=blue, B=green, C=yellow, D=pink) |
 | AB constraint checkboxes | Four per tab (A / B / Σ_U / Δ=0); auto-compute B(k) or enforce Δ=0 in real-time; affected cells become read-only |
 | Stability badges | Spectral radii ρ(F), ρ(A), ρ(D) shown live below the F(k) table |
@@ -356,11 +356,11 @@ Window geometry, splitter position, M, seed, and auto-filter state are restored 
 
 ## Adding a new model
 
-Create a file `prg/models/model_<name>.py` that subclasses `BaseGSSModel`:
+Create a file `awesometmc/models/model_<name>.py` that subclasses `BaseGSSModel`:
 
 ```python
 import numpy as np
-from prg.models.base_gss_model import BaseGSSModel
+from awesometmc.models.base_gss_model import BaseGSSModel
 
 class ModelMyGSS(BaseGSSModel):
     K, q, s = 3, 2, 1
@@ -397,18 +397,18 @@ Then run with `--model model_my_gss`.
 
 All the tables and figures of Section V (Experiments) of *"On a New Family of Models
 for Exact Fast Filtering in Gaussian Markov Switching Systems"* are regenerated by
-[`prg/experiments/tac_simulations.py`](prg/experiments/tac_simulations.py), one case
+[`awesometmc/experiments/tac_simulations.py`](awesometmc/experiments/tac_simulations.py), one case
 per subsection:
 
 ```bash
 # from the repo root, inside the project venv (pip install -e ".[paper]")
-python -m prg.experiments.tac_simulations a          # Section V-A  (~10 s)
-python -m prg.experiments.tac_simulations b          # Section V-B  (~15 min)
-python -m prg.experiments.tac_simulations d          # Section V-C  (~2 min, cached USGS data in data/real/rivers)
-python -m prg.experiments.tac_simulations all        # a, b and d
-python -m prg.experiments.tac_simulations timing     # computing times per time step
-python -m prg.experiments.tac_simulations replot     # tables and figures from the stored results
-python -m prg.experiments.tac_simulations transient  # only the transient study of case b
+python -m awesometmc.experiments.tac_simulations a          # Section V-A  (~10 s)
+python -m awesometmc.experiments.tac_simulations b          # Section V-B  (~15 min)
+python -m awesometmc.experiments.tac_simulations d          # Section V-C  (~2 min, cached USGS data in data/real/rivers)
+python -m awesometmc.experiments.tac_simulations all        # a, b and d
+python -m awesometmc.experiments.tac_simulations timing     # computing times per time step
+python -m awesometmc.experiments.tac_simulations replot     # tables and figures from the stored results
+python -m awesometmc.experiments.tac_simulations transient  # only the transient study of case b
 ```
 
 The outputs are written to `results/tac_simulations/` (`--out` to change it):
@@ -417,7 +417,7 @@ The outputs are written to `results/tac_simulations/` (`--out` to change it):
 |---|---|---|---|
 | `a` | §V-A, Table I and the λ figure | `table_a.tex`, `fig_a_lambda.pdf`, `exp_a.json` | Error increase at n = 2 when a THGMSM is replaced by a CGOMSM1 or a CGOMSM2, regime known: closed forms, checked by Monte Carlo |
 | `b` | §V-B, Table II and the path figure | `table_b.tex`, `fig_b_homotopy.pdf`, `exp_b.json`, `exp_b_seq.npz` | Path of THGMSMs from a CGOMSM1 to a CGOMSM2: exact filters of both families against the exact filter by enumeration (N = 10) and an RBPF (N = 200); Monte Carlo half-widths, bootstrap of the crossing point, RBPF accuracy check, initial transient at the two ends of the path |
-| `d` | §V-C, Table III and the flood figure | `table_d.tex`, `fig_d_rivers.pdf`, `exp_d.json` | Real river-discharge data (USGS, three reaches, 2014–2023) with the gauged tributary inflow as a measured input: THGMSM, CGOMSM1 (also with \|A\| ≤ 0.99) and CGOMSM2 fitted per rising/falling regime, filters run on the test years, static regression as a reference, paired block-bootstrap intervals, regime accuracy ([`tac_rivers.py`](prg/experiments/tac_rivers.py)) |
+| `d` | §V-C, Table III and the flood figure | `table_d.tex`, `fig_d_rivers.pdf`, `exp_d.json` | Real river-discharge data (USGS, three reaches, 2014–2023) with the gauged tributary inflow as a measured input: THGMSM, CGOMSM1 (also with \|A\| ≤ 0.99) and CGOMSM2 fitted per rising/falling regime, filters run on the test years, static regression as a reference, paired block-bootstrap intervals, regime accuracy ([`tac_rivers.py`](awesometmc/experiments/tac_rivers.py)) |
 | `timing` | §V | `timing.json` | Time per step of the exact CGOMSM1/CGOMSM2 filters, of the RBPF and of the enumeration |
 
 **Notes**
@@ -445,8 +445,8 @@ of the K<sup>N</sup> regime paths.
 
 ```bash
 # from the repo root, inside the project venv
-python -m prg.experiments.cns_exactness      # experiments E1–E11, printed as the paper's tables
-python -m prg.experiments.make_cns_figures   # the two figures, written to docs/CNS-exactness/figures/
+python -m awesometmc.experiments.cns_exactness      # experiments E1–E11, printed as the paper's tables
+python -m awesometmc.experiments.make_cns_figures   # the two figures, written to docs/CNS-exactness/figures/
 ```
 
 `cns_exactness.py` runs eleven experiments (N = 10 time steps, 100 seeds off the
@@ -461,10 +461,10 @@ The three exactness domains of the paper can be tested on any model:
 |---|---|---|
 | order-1 IMM | C<sub>r</sub> = 0 for every regime | `imm_domain_residual` |
 | GPB2 | C<sub>k</sub>(A<sub>j</sub> − M<sub>j</sub>C<sub>j</sub>) = 0 for every pair (j, k) | `gpb2_domain_residual`, `cross_annihilation_residual` |
-| constant gain | AB constraint | `prg.utils.ab_constraint.ab_residual_max` |
+| constant gain | AB constraint | `awesometmc.utils.ab_constraint.ab_residual_max` |
 
 ```python
-from prg.utils.exactness import exactness_domains, assumption_g
+from awesometmc.utils.exactness import exactness_domains, assumption_g
 
 exactness_domains(params)
 # {'imm': False, 'gpb2': True, 'constant_gain': True, 'assumption_g': True}
@@ -481,9 +481,9 @@ the cross-annihilation residual when it is nonzero.
 
 The figures of an earlier draft of the paper (*"Exact Constant-Gain Filtering in Gaussian
 Markov Switching Systems"*) are regenerated by
-[`prg/experiments/make_paper_figures.py`](prg/experiments/make_paper_figures.py)
-(`python -m prg.experiments.make_paper_figures`, about 10 minutes); the exploratory harness
-`prg/experiments/study.py` generates the full set of development experiments.
+[`awesometmc/experiments/make_paper_figures.py`](awesometmc/experiments/make_paper_figures.py)
+(`python -m awesometmc.experiments.make_paper_figures`, about 10 minutes); the exploratory harness
+`awesometmc/experiments/study.py` generates the full set of development experiments.
 
 ---
 
@@ -492,7 +492,7 @@ Markov Switching Systems"*) are regenerated by
 ```bash
 source .venv/bin/activate
 pytest                        # full suite, ~45 s
-mypy                          # strict typing on prg/utils/ab_constraint.py
+mypy                          # strict typing on awesometmc/utils/ab_constraint.py
 ```
 
 The suite covers matrix diagnostics, parameter validation, the
@@ -541,8 +541,8 @@ the software:
 The concept DOI above always resolves to the latest version; each release also has
 its own DOI on Zenodo.
 
-If you use the exactness domains of the IMM and GPB2 filters (`prg/utils/exactness.py`,
-`prg/experiments/cns_exactness.py`), please also cite:
+If you use the exactness domains of the IMM and GPB2 filters (`awesometmc/utils/exactness.py`,
+`awesometmc/experiments/cns_exactness.py`), please also cite:
 
 ```bibtex
 @misc{lehmann_derrode_imm_gpb2_2026,

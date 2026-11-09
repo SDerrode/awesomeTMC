@@ -10,10 +10,10 @@ import csv
 import numpy as np
 import pytest
 
-from prg.classes.GSSParams import GSSParams
-from prg.classes.GSSSimulator import GSSSimulator
-from prg.models.model_gss_K2_q1_s1 import ModelGssK2Q1S1
-from prg.utils.exceptions import ParamError
+from awesometmc.classes.GSSParams import GSSParams
+from awesometmc.classes.GSSSimulator import GSSSimulator
+from awesometmc.models.model_gss_K2_q1_s1 import ModelGssK2Q1S1
+from awesometmc.utils.exceptions import ParamError
 
 # ---------------------------------------------------------------------------
 # Fixtures

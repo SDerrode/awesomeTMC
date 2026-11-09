@@ -16,6 +16,6 @@ From the repo root, with the project installed (`pip install -e .`):
 jupyter lab notebooks/        # or: jupyter notebook
 ```
 
-Use the kernel of the project's environment (the one where `import prg` works).
+Use the kernel of the project's environment (the one where `import awesometmc` works).
 The notebooks import the public filtering API (`GSSFilter`, `GSSSimulator`) plus
-the paper's example models and reference filters in `prg.experiments`.
+the paper's example models and reference filters in `awesometmc.experiments`.

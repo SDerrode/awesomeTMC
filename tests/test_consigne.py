@@ -12,20 +12,20 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from prg.classes.GSSParams import NGHMSMParams
-from prg.classes.GSSSimulator import GSSSimulator
-from prg.experiments.reference_filters import (
+from awesometmc.classes.GSSParams import NGHMSMParams
+from awesometmc.classes.GSSSimulator import GSSSimulator
+from awesometmc.experiments.reference_filters import (
     exact_mixture_filter,
     imm_filter,
     oracle_filter,
     single_kalman_filter,
     with_stationary_init,
 )
-from prg.filter.gss_filter import GSSFilter
-from prg.models.model_gss_K2_q1_s1_consigne import ModelGssK2Q1S1Consigne
-from prg.models.model_gss_K2_q2_s2 import ModelGss_K2_q2_s2
-from prg.utils.exceptions import ParamError
-from prg.utils.input_signal import INPUT_GENERATORS, make_input
+from awesometmc.filter.gss_filter import GSSFilter
+from awesometmc.models.model_gss_K2_q1_s1_consigne import ModelGssK2Q1S1Consigne
+from awesometmc.models.model_gss_K2_q2_s2 import ModelGss_K2_q2_s2
+from awesometmc.utils.exceptions import ParamError
+from awesometmc.utils.input_signal import INPUT_GENERATORS, make_input
 
 
 def _consigne_params(seed=0, scale=1.3, p=2):

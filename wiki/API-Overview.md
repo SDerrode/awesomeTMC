@@ -5,7 +5,7 @@ Module map and the role of each component.
 ## Top-level layout
 
 ```
-prg/
+awesometmc/
 ├── classes/        # Data containers (parameters, simulator, F matrix)
 ├── filter/         # Optimal filter (ngh_kf and gpb2 modes)
 ├── learning/       # Supervised + semi-supervised estimators
@@ -19,7 +19,7 @@ prg/
 
 ## Core classes
 
-### `GSSParams` (`prg/classes/GSSParams.py`)
+### `GSSParams` (`awesometmc/classes/GSSParams.py`)
 
 Aggregates all GSS model parameters and validates them. Construct from
 a `BaseGSSModel`:
@@ -34,7 +34,7 @@ Mutable in tests, immutable in normal use. Build instances with
 `from_model`; it exposes `K`, `q`, `s`, the `f_matrix`/`noise_cov`
 blocks and `stationary_distribution()`.
 
-### `GSSSimulator` (`prg/classes/GSSSimulator.py`)
+### `GSSSimulator` (`awesometmc/classes/GSSSimulator.py`)
 
 Iterator: yields `(n, r, x, y)` tuples one step at a time.
 
@@ -45,17 +45,17 @@ for n, r, x, y in sim:
 sim_df = sim.to_dataframe(N=1000)         # convenience: collect as DataFrame
 ```
 
-### `FMatrix`, `NoiseCovariance` (`prg/classes/`)
+### `FMatrix`, `NoiseCovariance` (`awesometmc/classes/`)
 
 Block representations of \(F(k)\) and \(\Sigma_W(k)\) with cached
 spectral radius, conditioning, etc.
 
 ## Filtering
 
-### `GSSFilter` (`prg/filter/gss_filter.py`)
+### `GSSFilter` (`awesometmc/filter/gss_filter.py`)
 
 ```python
-from prg.filter import GSSFilter
+from awesometmc.filter import GSSFilter
 
 filt = GSSFilter(params, mode="ngh_kf")  # or "gpb2"
 res  = filt.step(y)                         # one observation
@@ -143,11 +143,11 @@ GSSError
 
 ## Reproducibility helpers
 
-The `prg/experiments/` package is structured so each script can be
+The `awesometmc/experiments/` package is structured so each script can be
 invoked as a module *or* called from Python:
 
 ```python
-from prg.experiments.run_real_data import (
+from awesometmc.experiments.run_real_data import (
     load_enso, run_e1, run_e2, run_e3,
 )
 

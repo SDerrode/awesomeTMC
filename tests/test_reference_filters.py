@@ -15,9 +15,9 @@ import warnings
 import numpy as np
 import pytest
 
-from prg.classes.GSSSimulator import GSSSimulator
-from prg.experiments.models_paper import get_params
-from prg.experiments.reference_filters import (
+from awesometmc.classes.GSSSimulator import GSSSimulator
+from awesometmc.experiments.models_paper import get_params
+from awesometmc.experiments.reference_filters import (
     exact_mixture_filter,
     gpb2_filter,
     imm_filter,
@@ -26,8 +26,8 @@ from prg.experiments.reference_filters import (
     single_kalman_filter,
     with_stationary_init,
 )
-from prg.experiments.run_simulations import _params_from_dict
-from prg.filter.gss_filter import GSSFilter
+from awesometmc.experiments.run_simulations import _params_from_dict
+from awesometmc.filter.gss_filter import GSSFilter
 
 
 def _data(params, N, seed):
@@ -73,8 +73,8 @@ def test_oracle_beats_single_kalman():
 def test_rank_deficient_model_is_valid_and_exact():
     """E7: with a rank-deficient C (s < q, full column rank impossible), the model
     is still a valid CGOMSM2 and ngh_kf still equals the exact Bayesian filter."""
-    from prg.experiments.study import rank_deficient_model
-    from prg.utils.ab_constraint import validate_ngh_msm
+    from awesometmc.experiments.study import rank_deficient_model
+    from awesometmc.utils.ab_constraint import validate_ngh_msm
 
     params = rank_deficient_model()
     assert params.s < params.q  # under-observed: C cannot be full column rank

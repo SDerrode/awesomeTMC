@@ -16,15 +16,15 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from prg.classes.FMatrix import FMatrix
-from prg.classes.GSSParams import GSSParams
-from prg.classes.GSSSimulator import GSSSimulator
-from prg.classes.NoiseCovariance import GSSNoiseCovariance
-from prg.experiments.models_paper import get_params
-from prg.experiments.reference_filters import with_stationary_init
-from prg.experiments.run_simulations import _params_from_dict
-from prg.filter.gss_filter import GSSFilter
-from prg.utils.ab_constraint import ab_residual_max, apply_AB_constraint
+from awesometmc.classes.FMatrix import FMatrix
+from awesometmc.classes.GSSParams import GSSParams
+from awesometmc.classes.GSSSimulator import GSSSimulator
+from awesometmc.classes.NoiseCovariance import GSSNoiseCovariance
+from awesometmc.experiments.models_paper import get_params
+from awesometmc.experiments.reference_filters import with_stationary_init
+from awesometmc.experiments.run_simulations import _params_from_dict
+from awesometmc.filter.gss_filter import GSSFilter
+from awesometmc.utils.ab_constraint import ab_residual_max, apply_AB_constraint
 
 
 def _random_ab_model(K: int, q: int, s: int, seed: int, scale: float = 0.3) -> GSSParams:

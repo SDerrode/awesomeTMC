@@ -16,10 +16,10 @@ from __future__ import annotations
 
 import numpy as np
 
-from prg.classes.GSSSimulator import GSSSimulator
-from prg.experiments.cns_exactness import ab_model, cgo_memory_model, slaving_A_model
-from prg.experiments.reference_filters import gpb2_filter
-from prg.filter.gss_smoother import chain_log_likelihood, family_lrt, regime_smoother
+from awesometmc.classes.GSSSimulator import GSSSimulator
+from awesometmc.experiments.cns_exactness import ab_model, cgo_memory_model, slaving_A_model
+from awesometmc.experiments.reference_filters import gpb2_filter
+from awesometmc.filter.gss_smoother import chain_log_likelihood, family_lrt, regime_smoother
 
 
 def _data(params, N, seed):
