@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.0] — 2026-11-09
+
 ### Changed
 - **Breaking: the import package `prg` is renamed `awesometmc`**, so that an installed
   distribution does not put a generic top-level name into `site-packages` (preparation of
@@ -108,7 +110,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ``.github/workflows/publish.yml``: PyPI publication through trusted publishing (OIDC, no
   stored token). A published GitHub Release builds, checks that the tag matches the
   ``pyproject.toml`` version, runs ``twine check --strict`` and uploads to PyPI; a manual
-  run only targets TestPyPI. Not active until the trusted publisher is declared on PyPI.
+  run only targets TestPyPI (dry run done on test.pypi.org).
+- First release distributed on PyPI: `pip install awesomeTMC` (Python 3.14) installs the
+  library (`import awesometmc`); the paper experiments and their data still need a clone.
+  README and wiki Installation page updated accordingly.
 
 ## [3.2.1] — 2026-10-30
 

@@ -88,8 +88,23 @@ switching models ($C = 0$); it is checked at model-build time.
 
 ## Installation
 
-Python **3.14** is required (declared in `pyproject.toml`).  
-The package is **not on PyPI** — install it from a clone of the repository. A project virtual environment is recommended (the system-wide Homebrew NumPy does not load correctly on this platform).
+Python **3.14** is required (declared in `pyproject.toml`). A virtual environment is recommended (the system-wide Homebrew NumPy does not load correctly on this platform).
+
+### From PyPI (library only)
+
+```bash
+python3.14 -m venv .venv
+source .venv/bin/activate
+pip install awesomeTMC            # or "awesomeTMC[gui]" for the PyQt6 GUI
+```
+
+The distribution is called `awesomeTMC`; the package it installs is imported as `awesometmc`
+(`from awesometmc.filter import GSSFilter`). The models of `awesometmc/models/`, the filters,
+the learning modules and the `python -m awesometmc.simulate` / `python -m awesometmc.filter.main` /
+`python -m awesometmc.gui.main` entry points are included; the paper experiments read data
+and write results relative to the repository, so they need a clone (below).
+
+### From a clone (development, paper experiments)
 
 ```bash
 # Clone the repository
