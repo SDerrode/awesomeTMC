@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Breaking: the import package `prg` is renamed `awesometmc`**, so that an installed
+  distribution does not put a generic top-level name into `site-packages` (preparation of
+  the PyPI release). Write `import awesometmc`, `from awesometmc.filter import GSSFilter`,
+  `python -m awesometmc.simulate`, `python -m awesometmc.gui.main`, etc.; model files now
+  live in `awesometmc/models/`. The distribution name (`awesomeTMC`) and the logger names
+  are unchanged. An editable install must be redone (`pip install -e .`). Paths quoted in
+  the entries below are those of their release.
+
 ### Added
 - **`prg/experiments/cns_exactness.py` (E12)** — `jmls_model(kappas, full_su, p_switch)` and
   `exp12_jmls_outside_branches()`: a classical jump Markov linear system (separate

@@ -20,16 +20,16 @@ Gaussian Switching System framework.
 
 ## What is in the package?
 
-- **Filter** (`prg/filter/`) — exact constant-gain optimal filter under
+- **Filter** (`awesometmc/filter/`) — exact constant-gain optimal filter under
   AB, plus a general IMM mode for unconstrained models.
-- **Simulator** (`prg/simulate.py`) — fast iterator-based generator of
+- **Simulator** (`awesometmc/simulate.py`) — fast iterator-based generator of
   GSS trajectories.
-- **Learning** (`prg/learning/`) — supervised OLS and semi-supervised
+- **Learning** (`awesometmc/learning/`) — supervised OLS and semi-supervised
   Baum-Welch EM with three AB projection variants
   (\(\tau \in \{B, A^\dagger, \Sigma_U\}\)).
-- **Experiments** (`prg/experiments/`) — Monte-Carlo benchmarks (§6 of
+- **Experiments** (`awesometmc/experiments/`) — Monte-Carlo benchmarks (§6 of
   the paper) and the ENSO real-data study (§7).
-- **GUI** (`prg/gui/`) — interactive PyQt6 interface (optional).
+- **GUI** (`awesometmc/gui/`) — interactive PyQt6 interface (optional).
 
 ## Citing
 

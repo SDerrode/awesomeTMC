@@ -2,7 +2,7 @@
 """
 tests/test_param_panel_gui.py
 =============================
-End-to-end GUI tests for prg/gui/param_panel.py using pytest-qt.
+End-to-end GUI tests for awesometmc/gui/param_panel.py using pytest-qt.
 
 Coverage
 --------
@@ -22,8 +22,8 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import numpy as np
 
-from prg.gui.param_panel import ParamPanel
-from prg.utils.ab_constraint import compute_AB, compute_ab_residual
+from awesometmc.gui.param_panel import ParamPanel
+from awesometmc.utils.ab_constraint import compute_AB, compute_ab_residual
 
 
 # ---------------------------------------------------------------------------

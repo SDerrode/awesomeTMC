@@ -2,7 +2,7 @@
 """
 tests/test_tac_simulations.py
 =============================
-Checks of the self-contained filters of ``prg/experiments/tac_simulations.py`` (Section V of the
+Checks of the self-contained filters of ``awesometmc/experiments/tac_simulations.py`` (Section V of the
 IEEE TAC paper) against brute-force enumeration of the regime paths:
 
 * exact filter of the CGOMSM1 and of the CGOMSM2 (means and variances), scalar case of Section V-B;
@@ -22,7 +22,7 @@ import json
 import numpy as np
 import pytest
 
-from prg.experiments import tac_simulations as T
+from awesometmc.experiments import tac_simulations as T
 
 # --------------------------------------------------------------------------- brute force
 
@@ -300,7 +300,7 @@ def test_tables_have_true_minus_signs_and_no_negative_zero(tmp_path):
 
 
 def test_dataset_download_is_checked(tmp_path, monkeypatch):
-    from prg.experiments import make_vehicle_consigne_fig as mv
+    from awesometmc.experiments import make_vehicle_consigne_fig as mv
 
     class _Resp:
         def read(self):

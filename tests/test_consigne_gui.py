@@ -24,12 +24,12 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import numpy as np
 
-from prg.gui.main_window import GSSMainWindow
-from prg.gui.matrix_widget import MatrixTableWidget
-from prg.gui.param_panel import ParamPanel
-from prg.gui.plot_panel import PlotPanel
-from prg.gui.session_state import _SessionState
-from prg.gui.workers import _FilterWorker, _SimWorker
+from awesometmc.gui.main_window import GSSMainWindow
+from awesometmc.gui.matrix_widget import MatrixTableWidget
+from awesometmc.gui.param_panel import ParamPanel
+from awesometmc.gui.plot_panel import PlotPanel
+from awesometmc.gui.session_state import _SessionState
+from awesometmc.gui.workers import _FilterWorker, _SimWorker
 
 _P = np.array([[0.9, 0.1], [0.2, 0.8]])
 
@@ -150,7 +150,7 @@ class TestWorkersAcceptU:
         params = win._build_gss_params()
         assert params.p == 1
         N = 30
-        from prg.utils.input_signal import make_input
+        from awesometmc.utils.input_signal import make_input
 
         u = make_input("step(10)", N, params.p)
         worker = _SimWorker(params, N, seed=0, u=u)

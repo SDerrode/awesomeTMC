@@ -2,10 +2,10 @@
 """
 scripts/params_utils.py
 =======================
-Utilities to convert the output dict of :func:`prg.learning.supervised.fit_supervised`
-(or the EM dict of :func:`prg.learning.semi_supervised.fit_semi_supervised`) into a
-validated :class:`prg.classes.GSSParams.GSSParams` ready to be fed into
-:class:`prg.filter.gss_filter.GSSFilter` or any baseline filter.
+Utilities to convert the output dict of :func:`awesometmc.learning.supervised.fit_supervised`
+(or the EM dict of :func:`awesometmc.learning.semi_supervised.fit_semi_supervised`) into a
+validated :class:`awesometmc.classes.GSSParams.GSSParams` ready to be fed into
+:class:`awesometmc.filter.gss_filter.GSSFilter` or any baseline filter.
 """
 
 from __future__ import annotations
@@ -14,9 +14,9 @@ from typing import Any
 
 import numpy as np
 
-from prg.classes.FMatrix import FMatrix
-from prg.classes.GSSParams import GSSParams
-from prg.classes.NoiseCovariance import GSSNoiseCovariance
+from awesometmc.classes.FMatrix import FMatrix
+from awesometmc.classes.GSSParams import GSSParams
+from awesometmc.classes.NoiseCovariance import GSSNoiseCovariance
 
 
 def params_from_dict(d: dict[str, Any]) -> GSSParams:

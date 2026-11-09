@@ -2,7 +2,7 @@
 """
 tests/test_tac_rivers.py
 ========================
-Checks of ``prg/experiments/tac_rivers.py`` (Section V-C of the IEEE TAC paper, river discharge):
+Checks of ``awesometmc/experiments/tac_rivers.py`` (Section V-C of the IEEE TAC paper, river discharge):
 
 * the exact CGOMSM1 / CGOMSM2 filters with input against brute-force enumeration of the regime
   paths (means, log-likelihood increments) and against ``tac_simulations.cgo_filter_c``;
@@ -18,8 +18,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from prg.experiments import tac_rivers as R
-from prg.experiments import tac_simulations as T
+from awesometmc.experiments import tac_rivers as R
+from awesometmc.experiments import tac_simulations as T
 from tests.test_tac_simulations import _brute_force, _random_c_model, _simulate_c
 
 

@@ -6,7 +6,7 @@ scalar GSS model. Each command takes < 1 s.
 ## 1. Simulate a trajectory
 
 ```bash
-python -m prg.simulate --model model_gss_K2_q1_s1 -N 1000 --seed 42
+python -m awesometmc.simulate --model model_gss_K2_q1_s1 -N 1000 --seed 42
 ```
 
 This writes
@@ -16,7 +16,7 @@ columns `n, r, x_0, y_0`.
 ## 2. Run the filter
 
 ```bash
-python -m prg.filter.main --model model_gss_K2_q1_s1 -N 1000 --seed 42
+python -m awesometmc.filter.main --model model_gss_K2_q1_s1 -N 1000 --seed 42
 ```
 
 Writes a sibling CSV with the filtered means
@@ -27,14 +27,14 @@ regime probabilities.
 
 ```bash
 # Supervised (R is in the CSV)
-python -m prg.learning.supervised \
+python -m awesometmc.learning.supervised \
     data/simulated/simulated_model_gss_K2_q1_s1_N1000_seed42.csv \
-    --constraint ab --output prg/models/model_learned_K2.py
+    --constraint ab --output awesometmc/models/model_learned_K2.py
 
 # Semi-supervised (ignores the r column, recovers regimes by EM)
-python -m prg.learning.semi_supervised \
+python -m awesometmc.learning.semi_supervised \
     data/simulated/simulated_model_gss_K2_q1_s1_N1000_seed42.csv \
-    -K 2 --constraint ab --n-inits 5 --output prg/models/model_em_K2.py
+    -K 2 --constraint ab --n-inits 5 --output awesometmc/models/model_em_K2.py
 ```
 
 Both write a Python file containing a `BaseGSSModel` subclass with
@@ -43,7 +43,7 @@ the estimated parameters.
 ## 4. Refilter with the learned model
 
 ```bash
-python -m prg.filter.main --model model_learned_K2 -N 1000 --seed 42
+python -m awesometmc.filter.main --model model_learned_K2 -N 1000 --seed 42
 ```
 
 Compare the resulting MSE against the oracle filter (step 2) — this is
@@ -52,9 +52,9 @@ exactly the type of comparison §6.3 of the paper does at scale.
 ## 5. Use the Python API
 
 ```python
-from prg.classes.GSSParams import GSSParams
-from prg.models.model_gss_K2_q1_s1 import ModelGss_K2_q1_s1
-from prg.filter import GSSFilter
+from awesometmc.classes.GSSParams import GSSParams
+from awesometmc.models.model_gss_K2_q1_s1 import ModelGss_K2_q1_s1
+from awesometmc.filter import GSSFilter
 import numpy as np
 
 params = GSSParams.from_model(ModelGss_K2_q1_s1())
@@ -89,7 +89,7 @@ print(jarque_bera(innov))                          # mixture-of-Gaussians: kurto
 
 ```bash
 pip install -e ".[gui]"
-python -m prg.gui.main -K 2 -q 1 -s 1
+python -m awesometmc.gui.main -K 2 -q 1 -s 1
 ```
 
 The GUI lets you tweak the parameters, simulate, filter, and visualise

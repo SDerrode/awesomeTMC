@@ -2,7 +2,7 @@
 """
 tests/test_session_state.py
 ===========================
-Unit tests for prg/gui/session_state.py::_SessionState.
+Unit tests for awesometmc/gui/session_state.py::_SessionState.
 
 These are pure-Python (no Qt binding required), so they run in CI:
 ``_SessionState`` only depends on numpy and dataclasses.
@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from prg.gui.session_state import _SessionState
+from awesometmc.gui.session_state import _SessionState
 
 
 def _filled() -> _SessionState:

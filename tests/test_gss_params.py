@@ -12,11 +12,11 @@ import sys
 import numpy as np
 import pytest
 
-from prg.classes.FMatrix import FMatrix
-from prg.classes.GSSParams import GSSParams
-from prg.classes.NoiseCovariance import GSSNoiseCovariance
-from prg.models.model_gss_K2_q1_s1 import ModelGssK2Q1S1
-from prg.utils.exceptions import CovarianceError, ParamError
+from awesometmc.classes.FMatrix import FMatrix
+from awesometmc.classes.GSSParams import GSSParams
+from awesometmc.classes.NoiseCovariance import GSSNoiseCovariance
+from awesometmc.models.model_gss_K2_q1_s1 import ModelGssK2Q1S1
+from awesometmc.utils.exceptions import CovarianceError, ParamError
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -375,7 +375,7 @@ class TestValidationUnderOptimize:
         root = pathlib.Path(__file__).resolve().parent.parent
         code = (
             "import numpy as np;"
-            "from prg.classes.GSSParams import GSSParams;"
+            "from awesometmc.classes.GSSParams import GSSParams;"
             "GSSParams(K=1, q=1, s=1, P=np.array([[1.0]]), f_matrix=None,"
             " noise_cov=None, pi0=None, mu_z0_list=[], Sigma_z0_list=[])"
         )

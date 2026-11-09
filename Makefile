@@ -45,7 +45,7 @@ test: ## Run the full pytest suite
 	$(PY) -m pytest
 
 cov: ## Run pytest with coverage report
-	$(PY) -m pytest --cov=prg --cov-report=term --cov-report=xml --tb=short
+	$(PY) -m pytest --cov=awesometmc --cov-report=term --cov-report=xml --tb=short
 
 lint: ## Lint with ruff (check only)
 	$(PY) -m ruff check .
@@ -53,7 +53,7 @@ lint: ## Lint with ruff (check only)
 fmt: ## Auto-fix lint issues with ruff
 	$(PY) -m ruff check --fix .
 
-typecheck: ## Run mypy (strict on prg/utils/ab_constraint.py)
+typecheck: ## Run mypy (strict on awesometmc/utils/ab_constraint.py)
 	$(PY) -m mypy
 
 check: lint typecheck test ## Run lint + typecheck + tests (CI parity)

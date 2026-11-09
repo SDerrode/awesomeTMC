@@ -3,9 +3,9 @@
 tests/test_smoothers.py
 =======================
 Machine-precision guards for the O(N K²) fixed-interval smoothers of
-``prg/filter/gss_smoother.py`` (the smoothing companion paper), against the
+``awesometmc/filter/gss_smoother.py`` (the smoothing companion paper), against the
 exact Kᴺ path-enumeration smoother of
-``prg/experiments/reference_smoothers.py``.
+``awesometmc/experiments/reference_smoothers.py``.
 
 The map being tested:
 - regime smoothing (forward-backward on the observed chain) is exact on both
@@ -23,24 +23,24 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from prg.classes.GSSSimulator import GSSSimulator
-from prg.experiments.cns_exactness import (
+from awesometmc.classes.GSSSimulator import GSSSimulator
+from awesometmc.experiments.cns_exactness import (
     ab_model,
     cgo_memory_model,
     three_regime_mixed_model,
 )
-from prg.experiments.models_paper import get_params
-from prg.experiments.reference_filters import gpb2_filter
-from prg.experiments.reference_smoothers import exact_mixture_smoother
-from prg.experiments.run_simulations import _params_from_dict
-from prg.filter.gss_smoother import (
+from awesometmc.experiments.models_paper import get_params
+from awesometmc.experiments.reference_filters import gpb2_filter
+from awesometmc.experiments.reference_smoothers import exact_mixture_smoother
+from awesometmc.experiments.run_simulations import _params_from_dict
+from awesometmc.filter.gss_smoother import (
     _slaving,
     constant_gain_smoother,
     lag1_constant_gain_smoother,
     regime_smoother,
     reweight_smoother,
 )
-from prg.utils.ab_constraint import apply_AB_constraint
+from awesometmc.utils.ab_constraint import apply_AB_constraint
 
 N_STEPS = 9
 SEEDS = (100, 101, 102)

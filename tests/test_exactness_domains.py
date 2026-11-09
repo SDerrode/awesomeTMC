@@ -1,9 +1,9 @@
-"""Block-level exactness-domain residuals (prg.utils.exactness) against the
+"""Block-level exactness-domain residuals (awesometmc.utils.exactness) against the
 gauges of the committed experiment suite and the exact mixture filter."""
 
 from __future__ import annotations
 
-from prg.experiments.cns_exactness import (
+from awesometmc.experiments.cns_exactness import (
     ab_model,
     cgo_memory_model,
     cross_annihilation_model,
@@ -14,7 +14,7 @@ from prg.experiments.cns_exactness import (
     off_union_model,
     slaving_A_model,
 )
-from prg.utils.exactness import (
+from awesometmc.utils.exactness import (
     assumption_g,
     cross_annihilation_residual,
     exactness_domains,
@@ -46,8 +46,8 @@ def test_ab_model_all_three_exact_but_imm():
 
 
 def test_round_off_memory_is_on_the_gpb2_domain():
-    from prg.classes.GSSParams import GSSParams
-    from prg.models.model_gss_K2_q1_s1 import ModelGssK2Q1S1
+    from awesometmc.classes.GSSParams import GSSParams
+    from awesometmc.models.model_gss_K2_q1_s1 import ModelGssK2Q1S1
 
     p = GSSParams.from_model(ModelGssK2Q1S1())  # AB up to the rounding of its stored blocks
     assert 0.0 < max(abs(residual_memory(p, j)).max() for j in range(p.K)) < 1e-12
@@ -79,7 +79,7 @@ def test_matrix_cross_annihilation_beyond_the_union():
 def test_gpb2_domain_matches_exact_filter():
     """The block-level test predicts machine-precision agreement with the exact
     mixture filter (and disagreement off the domain)."""
-    from prg.experiments.cns_exactness import gaps
+    from awesometmc.experiments.cns_exactness import gaps
 
     g_in = gaps(cross_annihilation_model(True), n_seeds=5)
     g_out = gaps(cross_annihilation_model(False), n_seeds=5)
@@ -129,7 +129,7 @@ def test_jmls_outside_both_branches_is_on_the_gpb2_domain():
     breaks the cross-annihilation."""
     import numpy as np
 
-    from prg.experiments.cns_exactness import gaps
+    from awesometmc.experiments.cns_exactness import gaps
 
     p_in, p_out = jmls_model(full_su=False), jmls_model(full_su=True)
     for p in (p_in, p_out):

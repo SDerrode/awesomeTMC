@@ -26,9 +26,9 @@ import tempfile
 import numpy as np
 import pytest
 
-from prg.classes.GSSParams import GSSParams
-from prg.filter.gss_filter import GSSFilter
-from prg.models.model_gss_K2_q1_s1 import ModelGssK2Q1S1
+from awesometmc.classes.GSSParams import GSSParams
+from awesometmc.filter.gss_filter import GSSFilter
+from awesometmc.models.model_gss_K2_q1_s1 import ModelGssK2Q1S1
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -63,7 +63,7 @@ def non_ab_params(params) -> GSSParams:
     blocks violating AB (A = 0.8 / 0.5, B = 0.1 / 0.3 — stable but off the AB
     manifold) to exercise the ngh_kf warning / bias path.
     """
-    from prg.classes.FMatrix import FMatrix
+    from awesometmc.classes.FMatrix import FMatrix
 
     K, q, s = params.K, params.q, params.s
     fm = FMatrix(
@@ -459,13 +459,13 @@ class TestStationaryMoments:
         """Proposition 4 (direct form): for an AB-constrained model the closed-form
         regime gain ``M_k = Δ_k Σ_V_k⁻¹`` and covariance
         ``Γ_k = Σ_U_k − Δ_k Σ_V_k⁻¹ Δ_k^T`` — used by ``mode='ngh_kf'`` for a
-        validated CGOMSM2 (:mod:`prg.filter.gss_filter`) — coincide with the gain
+        validated CGOMSM2 (:mod:`awesometmc.filter.gss_filter`) — coincide with the gain
         and posterior built from the fixed-point stationary moments,
         ``K_k = Σ_XY(k) Σ_YY(k)⁻¹`` and ``Σ_XX(k) − K_k Σ_YY(k) K_k^T``. This is
         the numerical check that the Riccati fixed-point machinery is redundant
         under the AB constraint, so the closed forms can replace it exactly.
         """
-        from prg.utils.ab_constraint import apply_AB_constraint
+        from awesometmc.utils.ab_constraint import apply_AB_constraint
 
         ab = apply_AB_constraint(GSSParams.from_model(ModelGssK2Q1S1()))
         f = GSSFilter(ab, mode="ngh_kf")
@@ -559,8 +559,11 @@ class TestFilterModes:
         """
         import warnings
 
-        from prg.classes.GSSSimulator import GSSSimulator
-        from prg.experiments.reference_filters import exact_mixture_filter, with_stationary_init
+        from awesometmc.classes.GSSSimulator import GSSSimulator
+        from awesometmc.experiments.reference_filters import (
+            exact_mixture_filter,
+            with_stationary_init,
+        )
 
         params = with_stationary_init(non_ab_params)
         n = 12  # K^N enumeration: keep it tiny

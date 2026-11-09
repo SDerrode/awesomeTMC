@@ -2,7 +2,7 @@
 """
 tests/test_main_window_gui.py
 =============================
-Smoke tests for prg/gui/main_window.py and the helper modules extracted
+Smoke tests for awesometmc/gui/main_window.py and the helper modules extracted
 from it (diagnostics, session_state, workers, dialogs).
 
 These guard the module split: they fail if a symbol moved to another
@@ -19,31 +19,31 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import numpy as np
 
-from prg.classes.GSSParams import GSSParams
-from prg.gui.dialogs import _InnovHistDialog, _RegimeDiagDialog, _WaitDialog
-from prg.gui.main_window import GSSMainWindow
-from prg.gui.session_state import _SessionState
-from prg.gui.workers import _FilterWorker, _SimWorker
-from prg.models.model_gss_K2_q1_s1 import ModelGssK2Q1S1
+from awesometmc.classes.GSSParams import GSSParams
+from awesometmc.gui.dialogs import _InnovHistDialog, _RegimeDiagDialog, _WaitDialog
+from awesometmc.gui.main_window import GSSMainWindow
+from awesometmc.gui.session_state import _SessionState
+from awesometmc.gui.workers import _FilterWorker, _SimWorker
+from awesometmc.models.model_gss_K2_q1_s1 import ModelGssK2Q1S1
 
 _P = np.array([[0.9, 0.1], [0.2, 0.8]])
 
 
 # ---------------------------------------------------------------------------
-# Extracted helper module: prg.gui.diagnostics
+# Extracted helper module: awesometmc.gui.diagnostics
 # ---------------------------------------------------------------------------
 
 
 class TestDiagnostics:
     def test_ljung_box_white_noise_high_pvalue(self):
-        from prg.gui.diagnostics import _ljung_box
+        from awesometmc.gui.diagnostics import _ljung_box
 
         x = np.random.default_rng(0).standard_normal(500)
         _q, p, _h = _ljung_box(x)
         assert 0.0 <= p <= 1.0
 
     def test_shape_diagnostics_gaussian(self):
-        from prg.gui.diagnostics import _shape_diagnostics
+        from awesometmc.gui.diagnostics import _shape_diagnostics
 
         x = np.random.default_rng(1).standard_normal(2000)
         S, K, _jb, p = _shape_diagnostics(x)
@@ -51,14 +51,14 @@ class TestDiagnostics:
         assert 0.0 <= p <= 1.0
 
     def test_stationary_dist_matches_eigenvector(self):
-        from prg.gui.diagnostics import _stationary_dist
+        from awesometmc.gui.diagnostics import _stationary_dist
 
         pi = _stationary_dist(_P)
         assert pi is not None
         np.testing.assert_allclose(pi @ _P, pi, atol=1e-10)
 
     def test_standardise_innovations_sample_mode(self):
-        from prg.gui.diagnostics import _standardise_innovations
+        from awesometmc.gui.diagnostics import _standardise_innovations
 
         innov = np.random.default_rng(2).standard_normal((300, 2))
         out = _standardise_innovations(innov, None, None, None)
@@ -66,7 +66,7 @@ class TestDiagnostics:
 
 
 # ---------------------------------------------------------------------------
-# Extracted: prg.gui.session_state
+# Extracted: awesometmc.gui.session_state
 # ---------------------------------------------------------------------------
 
 
@@ -83,7 +83,7 @@ class TestSessionState:
 
 
 # ---------------------------------------------------------------------------
-# Extracted: prg.gui.workers (construct only; no thread start)
+# Extracted: awesometmc.gui.workers (construct only; no thread start)
 # ---------------------------------------------------------------------------
 
 
@@ -95,7 +95,7 @@ class TestWorkers:
 
 
 # ---------------------------------------------------------------------------
-# Extracted: prg.gui.dialogs (construct offscreen)
+# Extracted: awesometmc.gui.dialogs (construct offscreen)
 # ---------------------------------------------------------------------------
 
 
@@ -133,8 +133,8 @@ class TestMainWindow:
 
     def test_ngh_kf_blockers_guard(self, qtbot):
         """The ngh_kf CNS guard fires only for model violating ABs in ngh_kf mode."""
-        from prg.classes.GSSParams import NGHMSMParams
-        from prg.models.model_gss_K2_q2_s1 import ModelGss_K2_q2_s1
+        from awesometmc.classes.GSSParams import NGHMSMParams
+        from awesometmc.models.model_gss_K2_q2_s1 import ModelGss_K2_q2_s1
 
         win = GSSMainWindow(K=2, q=1, s=1, P=_P)
         qtbot.addWidget(win)
@@ -155,7 +155,7 @@ class TestMainWindow:
 
     def test_exactness_notes_report_assumption_g_and_gpb2_domain(self, qtbot):
         """Notes flag (G2) failures and off-domain GPB2 use; silent on a CGOMSM1 model."""
-        from prg.experiments.cns_exactness import (
+        from awesometmc.experiments.cns_exactness import (
             cgo_memory_model,
             g2_degenerate_model,
             off_union_model,

@@ -25,21 +25,21 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from prg.classes.FMatrix import FMatrix
-from prg.classes.GSSParams import GSSParams, NGHMSMParams
-from prg.classes.GSSSimulator import GSSSimulator
-from prg.classes.NoiseCovariance import GSSNoiseCovariance
-from prg.filter.gss_filter import GSSFilter
-from prg.models.model_gss_K2_q1_s1 import ModelGssK2Q1S1
-from prg.models.model_gss_K2_q2_s1 import ModelGss_K2_q2_s1
-from prg.models.presets import PRESETS
-from prg.utils.ab_constraint import (
+from awesometmc.classes.FMatrix import FMatrix
+from awesometmc.classes.GSSParams import GSSParams, NGHMSMParams
+from awesometmc.classes.GSSSimulator import GSSSimulator
+from awesometmc.classes.NoiseCovariance import GSSNoiseCovariance
+from awesometmc.filter.gss_filter import GSSFilter
+from awesometmc.models.model_gss_K2_q1_s1 import ModelGssK2Q1S1
+from awesometmc.models.model_gss_K2_q2_s1 import ModelGss_K2_q2_s1
+from awesometmc.models.presets import PRESETS
+from awesometmc.utils.ab_constraint import (
     apply_AB_constraint,
     compute_AB,
     is_ngh_msm,
     validate_ngh_msm,
 )
-from prg.utils.exceptions import ParamError
+from awesometmc.utils.exceptions import ParamError
 
 
 # ---------------------------------------------------------------------------

@@ -2,7 +2,7 @@
 """
 tests/test_supervised.py
 ========================
-Unit tests for prg.learning.supervised.
+Unit tests for awesometmc.learning.supervised.
 
 Coverage
 --------
@@ -25,9 +25,9 @@ import sys
 import numpy as np
 import pytest
 
-from prg.classes.GSSParams import GSSParams
-from prg.classes.GSSSimulator import GSSSimulator
-from prg.learning.supervised import (
+from awesometmc.classes.GSSParams import GSSParams
+from awesometmc.classes.GSSSimulator import GSSSimulator
+from awesometmc.learning.supervised import (
     _class_name_from_stem,
     _fit_regime,
     _fmt_arr,
@@ -37,7 +37,7 @@ from prg.learning.supervised import (
     _read_csv,
     fit_supervised,
 )
-from prg.models.model_gss_K2_q1_s1 import ModelGssK2Q1S1
+from awesometmc.models.model_gss_K2_q1_s1 import ModelGssK2Q1S1
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -60,7 +60,7 @@ def simulated_csv(params_k2q1s1, tmp_path_factory) -> pathlib.Path:
 @pytest.fixture(scope="module")
 def fitted_params(simulated_csv) -> dict:
     """Fit (no constraint) from the shared CSV; reused across tests."""
-    from prg.learning.supervised import _read_csv as rc
+    from awesometmc.learning.supervised import _read_csv as rc
 
     rs, xs, ys, K, q, s = rc(simulated_csv)
     return fit_supervised(rs, xs, ys, K, q, s)
@@ -209,7 +209,7 @@ class TestFitRegime:
 
     def test_constraint_ab(self, noise_free_data):
         """After constraint='ab', A, B should match the closed form."""
-        from prg.utils.ab_constraint import compute_AB
+        from awesometmc.utils.ab_constraint import compute_AB
 
         Z_curr, Z_next, q, s, _, _ = noise_free_data
         A, B, C, D, SU, Dt, SV, _ = _fit_regime(
@@ -319,7 +319,7 @@ class TestFitSupervised:
 
     def test_constraint_ab(self, simulated_csv):
         """Estimated A(k), B(k) should match the AB-constraint closed form."""
-        from prg.utils.ab_constraint import compute_AB
+        from awesometmc.utils.ab_constraint import compute_AB
 
         rs, xs, ys, K, q, s = _read_csv(simulated_csv)
         params = fit_supervised(rs, xs, ys, K, q, s, constraint="ab")
@@ -476,7 +476,7 @@ class TestGenerateModelCode:
 class TestCLI:
     def _run_main(self, argv: list[str]) -> None:
         """Run main() with patched sys.argv; raises SystemExit on failure."""
-        from prg.learning.supervised import main
+        from awesometmc.learning.supervised import main
 
         saved = sys.argv
         sys.argv = ["supervised"] + argv

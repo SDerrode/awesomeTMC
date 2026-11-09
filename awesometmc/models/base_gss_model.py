@@ -1,0 +1,152 @@
+#!/usr/bin/env python3
+"""
+awesometmc/models/base_gss_model.py
+============================
+Abstract base class for all GSS (Gaussian Switching System) models.
+
+A concrete model is defined by subclassing BaseGSSModel and providing
+the class-level attributes listed below.  The ``get_params()`` method
+returns a plain dict that GSSParams can consume.
+
+Convention (mirrors awesomepkf's BaseModelLinear pattern)
+---------------------------------------------------------
+  - MODEL_NAME is derived automatically from the class name
+    (lower-case first letter, e.g. ``ModelGSS_K2_q1_s1`` →
+    ``"modelGSS_K2_q1_s1"``).
+  - All matrix lists are indexed by state k = 0, ..., K-1.
+  - Column vectors use shape (dim, 1).
+"""
+
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+
+__all__ = ["BaseGSSModel"]
+
+
+class BaseGSSModel(ABC):
+    """
+    Abstract base class for GSS models.
+
+    Subclasses must define the following **class attributes**:
+
+    Scalars
+    -------
+    K : int  — number of switching states (R in {0, ..., K-1}), >= 2
+    q : int  — dimension of X, >= 1
+    s : int  — dimension of Y, >= 1
+
+    Markov chain
+    ------------
+    P : ndarray (K, K)  — row-stochastic transition matrix
+
+    Dynamics — one list of K arrays per sub-block
+    ----------------------------------------------
+    A_list : list[(q, q)]
+    B_list : list[(q, s)]
+    C_list : list[(s, q)]
+    D_list : list[(s, s)]
+
+    Noise covariances — one list of K arrays per sub-block
+    -------------------------------------------------------
+    Sigma_U_list : list[(q, q)]  — cov of noise on X
+    Delta_list   : list[(q, s)]  — cross-covariance
+    Sigma_V_list : list[(s, s)]  — cov of noise on Y
+
+    Drift bias (optional — defaults to zero)
+    -----------------------------------------
+    b_list : list[(q+s, 1)]  — regime-dependent bias b(k) in eq (7bis).
+                               If absent or None, b(k) = 0 for all k.
+
+    Exogenous input / "consigne" (optional — defaults to autonomous)
+    ----------------------------------------------------------------
+    G_list : list[(q+s, p)]  — regime-dependent input gain G(k) in the
+                               transition Z_{n+1} = F(k) Z_n + b(k)
+                               + G(k) u_n + W_{n+1}, where u_n in R^p is a
+                               known ("observed") input.  If absent or None the
+                               model is autonomous (p = 0).  Add it to
+                               get_params() under the key "G_list" to enable a
+                               consigne.
+
+    Initial conditions
+    ------------------
+    pi0           : ndarray (K,) or None
+                    Initial distribution of R_0.
+                    ``None`` means "use the stationary distribution of P".
+    mu_z0_list    : list of K ndarrays, each shape (q+s, 1)
+                    Initial mean of Z_0 given R_0 = k.
+    Sigma_z0_list : list of K ndarrays, each shape (q+s, q+s)
+                    Initial covariance of Z_0 given R_0 = k.
+    """
+
+    def __init_subclass__(cls, **kwargs: object) -> None:
+        super().__init_subclass__(**kwargs)
+        # Derive model_name from the class name (lower-case first letter)
+        n = cls.__name__
+        cls.MODEL_NAME: str = n[0].lower() + n[1:]
+
+    @property
+    def model_name(self) -> str:
+        """String identifier derived from the class name."""
+        return self.__class__.MODEL_NAME  # type: ignore[attr-defined]
+
+    @staticmethod
+    def _ab_constraint(
+        C_list: list,
+        D_list: list,
+        Delta_list: list,
+        Sigma_V_list: list,
+    ) -> tuple[list, list]:
+        """
+        Closed-form AB blocks ``A_k = Δ_k Σ_V_k⁻¹ C_k``, ``B_k = Δ_k Σ_V_k⁻¹ D_k``.
+
+        CGOMSM2 presets declare only the *free* blocks (C, D, Δ, Σ_V) and call
+        this in ``get_params()`` so that A, B are **derived** — guaranteeing the
+        model satisfies the AB constraint by construction (Proposition 2,
+        sufficiency), rather than relying on hand-entered A, B that may be
+        inconsistent with it. Mirrors ``awesometmc/experiments/models_paper.py``.
+
+        Returns
+        -------
+        (A_list, B_list) : tuple of two lists of K arrays.
+        """
+        import numpy as np
+
+        from awesometmc.utils.ab_constraint import compute_AB
+
+        A_list, B_list = [], []
+        for C, D, Dt, SV in zip(C_list, D_list, Delta_list, Sigma_V_list, strict=True):
+            A, B = compute_AB(
+                np.asarray(C, dtype=float),
+                np.asarray(D, dtype=float),
+                np.asarray(Dt, dtype=float),
+                np.asarray(SV, dtype=float),
+            )
+            A_list.append(A)
+            B_list.append(B)
+        return A_list, B_list
+
+    @abstractmethod
+    def get_params(self) -> dict:
+        """
+        Return a dict with all model parameters, ready for GSSParams.
+
+        Keys
+        ----
+        K, q, s, P,
+        A_list, B_list, C_list, D_list,
+        Sigma_U_list, Delta_list, Sigma_V_list,
+        pi0, mu_z0_list, Sigma_z0_list
+
+        Optional keys: ``b_list`` (drift bias), ``G_list`` (exogenous-input
+        gains; enables a consigne, ``params.p > 0``).
+        """
+        ...
+
+    def __repr__(self) -> str:
+        return (
+            f"<{self.__class__.__name__}"
+            f"(K={getattr(self, 'K', '?')}, "
+            f"q={getattr(self, 'q', '?')}, "
+            f"s={getattr(self, 's', '?')})>"
+        )

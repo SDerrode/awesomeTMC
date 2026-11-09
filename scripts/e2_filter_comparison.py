@@ -50,13 +50,13 @@ from labels import (  # noqa: E402
 )
 from params_utils import params_from_dict  # noqa: E402
 
-from prg.experiments.reference_filters import (  # noqa: E402
+from awesometmc.experiments.reference_filters import (  # noqa: E402
     gpb2_filter,
     imm_filter,
     rbpf_filter,
 )
-from prg.filter.gss_filter import GSSFilter  # noqa: E402
-from prg.learning.supervised import fit_supervised  # noqa: E402
+from awesometmc.filter.gss_filter import GSSFilter  # noqa: E402
+from awesometmc.learning.supervised import fit_supervised  # noqa: E402
 
 
 @dataclass
@@ -115,7 +115,7 @@ def run_batch_filter(
 ) -> FilterScore:
     """Score a batch reference filter ``(params, ys) -> (E_x, Var_x, pi, log_lik)``.
 
-    Adapts the batch baselines in ``prg.experiments.reference_filters`` to the
+    Adapts the batch baselines in ``awesometmc.experiments.reference_filters`` to the
     same ``FilterScore`` row as the step-wise filters above.
     """
     t0 = time.perf_counter()

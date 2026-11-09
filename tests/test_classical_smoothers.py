@@ -17,15 +17,15 @@ Short records (N = 6) against the exact K^N path smoother:
 import numpy as np
 import pytest
 
-from prg.experiments.cns_exactness import (
+from awesometmc.experiments.cns_exactness import (
     SEED0,
     _rel,
     ab_model,
     cgo_memory_model,
     cross_annihilation_model,
 )
-from prg.experiments.reference_filters import exact_mixture_filter
-from prg.experiments.smoothing_exactness import (
+from awesometmc.experiments.reference_filters import exact_mixture_filter
+from awesometmc.experiments.smoothing_exactness import (
     collapsed_rts_smoother,
     exact_path_smoother,
     fixed_lag_collapsed_smoother,
@@ -37,7 +37,7 @@ from prg.experiments.smoothing_exactness import (
     random_cross_annihilation_params,
     slaved_init,
 )
-from prg.experiments.study import _simulate
+from awesometmc.experiments.study import _simulate
 
 N = 6
 TOL = 1e-12

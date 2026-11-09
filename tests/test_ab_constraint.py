@@ -2,7 +2,7 @@
 """
 tests/test_ab_constraint.py
 ===========================
-Unit tests for prg/utils/ab_constraint.py.
+Unit tests for awesometmc/utils/ab_constraint.py.
 
 Coverage
 --------
@@ -21,9 +21,9 @@ import inspect
 import numpy as np
 import pytest
 
-from prg.classes.GSSParams import GSSParams
-from prg.models.base_gss_model import BaseGSSModel
-from prg.utils.ab_constraint import (
+from awesometmc.classes.GSSParams import GSSParams
+from awesometmc.models.base_gss_model import BaseGSSModel
+from awesometmc.utils.ab_constraint import (
     ab_residual_max,
     apply_AB_constraint,
     compute_AB,
@@ -63,7 +63,7 @@ def rng():
 @pytest.fixture(scope="module")
 def params_K2_q1_s1() -> GSSParams:
     """GSSParams loaded dynamically from model_gss_K2_q1_s1."""
-    mod = importlib.import_module("prg.models.model_gss_K2_q1_s1")
+    mod = importlib.import_module("awesometmc.models.model_gss_K2_q1_s1")
     cls = next(
         c
         for _, c in inspect.getmembers(mod, inspect.isclass)

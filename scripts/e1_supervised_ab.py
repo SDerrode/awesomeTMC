@@ -29,12 +29,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-# Project root on sys.path so we can import prg.* regardless of CWD.
+# Project root on sys.path so we can import awesometmc.* regardless of CWD.
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from prg.learning.supervised import fit_supervised  # noqa: E402
+from awesometmc.learning.supervised import fit_supervised  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "scripts"))
 from labels import (  # noqa: E402

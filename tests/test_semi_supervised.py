@@ -2,7 +2,7 @@
 """
 tests/test_semi_supervised.py
 ==============================
-Unit tests for prg.learning.semi_supervised.
+Unit tests for awesometmc.learning.semi_supervised.
 
 Coverage
 --------
@@ -28,11 +28,11 @@ import numpy as np
 import pytest
 from scipy.stats import multivariate_normal
 
-from prg.classes.GSSParams import GSSParams
-from prg.classes.GSSSimulator import GSSSimulator
-from prg.experiments.models_paper import get_params
-from prg.experiments.run_simulations import _params_from_dict
-from prg.learning.semi_supervised import (
+from awesometmc.classes.GSSParams import GSSParams
+from awesometmc.classes.GSSSimulator import GSSSimulator
+from awesometmc.experiments.models_paper import get_params
+from awesometmc.experiments.run_simulations import _params_from_dict
+from awesometmc.learning.semi_supervised import (
     _backward,
     _compute_log_emissions,
     _compute_xi,
@@ -45,7 +45,7 @@ from prg.learning.semi_supervised import (
     _weighted_fit,
     fit_semi_supervised,
 )
-from prg.models.model_gss_K2_q1_s1 import ModelGssK2Q1S1
+from awesometmc.models.model_gss_K2_q1_s1 import ModelGssK2Q1S1
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -64,7 +64,7 @@ def simulated(true_params, tmp_path_factory):
     sim = GSSSimulator(true_params, N=2000, seed=0)
     csv = sim.run(output_dir=tmp, model_name="model_gss_K2_q1_s1")
 
-    from prg.learning.supervised import _read_csv as rc
+    from awesometmc.learning.supervised import _read_csv as rc
 
     rs, xs, ys, K, q, s = rc(csv)
     return xs, ys, rs, csv
@@ -234,7 +234,7 @@ class TestInitParamsFromR:
 class TestWeightedFit:
     def test_uniform_weights_match_OLS(self, simulated):
         """Uniform weights → same answer as supervised _fit_regime."""
-        from prg.learning.supervised import _fit_regime
+        from awesometmc.learning.supervised import _fit_regime
 
         xs, ys, _, _ = simulated
         Z = np.hstack([xs, ys])
@@ -338,7 +338,7 @@ class TestEMRun:
 
     def test_with_constraint_b(self, simulated):
         """Default (post-hoc) mode: AB still satisfied at the end."""
-        from prg.utils.ab_constraint import compute_AB
+        from awesometmc.utils.ab_constraint import compute_AB
 
         xs, ys, _, _ = simulated
         Z = np.hstack([xs, ys])
@@ -397,7 +397,7 @@ class TestEMRun:
         during the loop (so log-lik may not be strictly monotone — only
         check final feasibility).
         """
-        from prg.utils.ab_constraint import compute_AB
+        from awesometmc.utils.ab_constraint import compute_AB
 
         xs, ys, _, _ = simulated
         Z = np.hstack([xs, ys])
@@ -537,7 +537,7 @@ class TestFitSemiSupervised:
             max_iter=15,
             seed=0,
         )
-        from prg.utils.ab_constraint import compute_AB
+        from awesometmc.utils.ab_constraint import compute_AB
 
         for k in range(2):
             A_check, B_check = compute_AB(
@@ -562,7 +562,7 @@ class TestFitSemiSupervised:
             max_iter=15,
             seed=0,
         )
-        from prg.utils.ab_constraint import compute_AB
+        from awesometmc.utils.ab_constraint import compute_AB
 
         for k in range(2):
             A_check, B_check = compute_AB(
@@ -619,7 +619,7 @@ class TestReorderRegimes:
 
 class TestCLI:
     def _run_main(self, argv):
-        from prg.learning.semi_supervised import main
+        from awesometmc.learning.semi_supervised import main
 
         saved = sys.argv
         sys.argv = ["semi_supervised"] + argv
@@ -692,7 +692,7 @@ class TestCLI:
 
     def test_constraint_each_iter_flag(self, simulated, tmp_path):
         """The --constraint-each-iter flag is accepted and produces a model."""
-        from prg.utils.ab_constraint import compute_AB
+        from awesometmc.utils.ab_constraint import compute_AB
 
         _, _, _, csv = simulated
         out = tmp_path / "model_em_gem.py"

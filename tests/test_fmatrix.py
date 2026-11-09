@@ -8,8 +8,8 @@ Unit tests for FMatrix.
 import numpy as np
 import pytest
 
-from prg.classes.FMatrix import FMatrix
-from prg.utils.exceptions import ParamError
+from awesometmc.classes.FMatrix import FMatrix
+from awesometmc.utils.exceptions import ParamError
 
 # ---------------------------------------------------------------------------
 # Fixtures
