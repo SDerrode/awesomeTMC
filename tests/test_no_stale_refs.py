@@ -65,7 +65,11 @@ _FORBIDDEN_PATTERNS: list[tuple[re.Pattern[str], str, str]] = [
     (re.compile(r"\bimm_general\b"), "imm_general", "removed; use mode='gpb2'"),
     (re.compile(r"\bh5_exact\b"), "h5_exact", "use mode='ngh_kf'"),
     # Removed v1.1.1 → v2.0.0: the internal (H5) alias for the AB constraint
-    (re.compile(r"\bh5_constraint\b"), "h5_constraint", "the module is awesometmc.utils.ab_constraint"),
+    (
+        re.compile(r"\bh5_constraint\b"),
+        "h5_constraint",
+        "the module is awesometmc.utils.ab_constraint",
+    ),
     (re.compile(r"\bcompute_h5_residual\b"), "compute_h5_residual", "use compute_ab_residual"),
     (re.compile(r"\bh5_residual_max\b"), "h5_residual_max", "use ab_residual_max"),
     (re.compile(r"\bH5_TOL\b"), "H5_TOL", "use AB_TOL"),

@@ -467,7 +467,9 @@ def main() -> int:
     rng = np.random.default_rng(args.seed)
 
     if args.model is not None:
-        print(f"Loading model: awesometmc.models.{args.model}  (biases zeroed, AB constraint applied)\n")
+        print(
+            f"Loading model: awesometmc.models.{args.model}  (biases zeroed, AB constraint applied)\n"
+        )
         params = load_named_model(args.model)
         params.summary() if args.verbose else None
         results = [compare_one_model(params, N_traj=args.n_traj, seed=args.seed, verbose=True)]
