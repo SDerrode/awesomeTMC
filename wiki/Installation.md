@@ -9,11 +9,23 @@
 - A C/Fortran toolchain is *not* required: NumPy, SciPy and pandas
   ship as wheels for all major platforms.
 
-## Quick install (CPU only)
+## From PyPI (library only)
+
+```bash
+python3.14 -m venv .venv
+source .venv/bin/activate
+pip install awesomeTMC            # "awesomeTMC[gui]" adds the PyQt6 GUI
+python -c "import awesometmc"     # the import name is lower case
+```
+
+The paper experiments need the repository (data and result folders): use the
+clone below.
+
+## Quick install from a clone (CPU only)
 
 ```bash
 git clone https://github.com/SDerrode/awesomeTMC.git
-cd awesomeTMC       # the Python package inside is called `awesomeTMC`
+cd awesomeTMC       # the Python package inside is called `awesometmc`
 
 # Create and activate a project virtualenv (use python3.14 explicitly:
 # a system python3 that is < 3.14 will be rejected by pip)
