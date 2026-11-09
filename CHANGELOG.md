@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`awesometmc/experiments/imm_cgo_projection.py`** — "is the IMM a nearest-CGO filter?"
+  (question of W. Pieczynski, 2026-09-29). Along the CGO → NGH homotopy of
+  `homotopy_cgo_ngh.py` (same models, data and metric), the IMM fed the true model is
+  compared with exact CGO filters fed the Kullback-Leibler-nearest CGO model, in three
+  nested projections (`kl_F`: pair matrix only; `kl_hom`: homogeneous, full KL; `kl_pair`:
+  parameters depending on the pair (r_n, r_{n+1}) as in Abbassi et al. 2015, full KL, closed
+  form). At ε = 1, `kl_pair` is exactly the pair-dependent CGO whose filter coincides with the
+  NGH exact filter (machine precision). Backs the internal report `docs/rapport_imm_cgo`
+  (`python -m awesometmc.experiments.imm_cgo_projection [--seeds 200] [--out DIR]`).
+
 ## [3.3.0] — 2026-11-09
 
 ### Changed
