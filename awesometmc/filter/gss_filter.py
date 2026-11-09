@@ -106,8 +106,9 @@ from awesometmc.utils.input_signal import make_input
 __all__ = ["GSSFilter", "FilterResult"]
 
 FILTER_MODES = ("ngh_kf", "gpb2")
-# Relative residual ‖F(k)‖_F / max(‖Z(k)‖_F, 1) of the AB constraint
-# F(k) = Z(k) − P(k) M(k)⁻¹ W(k) below this → AB holds. 1e-6 is the
+# Relative block residual of the AB constraint, max over the regimes k of
+# ‖A(k) − M(k) C(k)‖_F / max(‖A(k)‖_F, ‖M(k) C(k)‖_F) and the same for
+# (B, D), with M(k) = Δ(k) Σ_V(k)⁻¹; below this → AB holds. 1e-6 is the
 # practical floor for float64 matrix arithmetic.
 AB_TOL = 1e-6
 
@@ -258,27 +259,27 @@ class GSSFilter:
     def _check_ab(self) -> None:
         """Emit a RuntimeWarning if AB is violated.
 
-        AB — the Markovianity of (R, Y) — requires, for **every** ordered
-        regime pair (j, k), that the regression of X_{n+1} on (Y_n, Y_{n+1})
-        given (r_n=j, r_{n+1}=k) not load on Y_n. We evaluate the relative
-        pairwise residual
+        AB — the Markovianity of (R, Y) for every joint law of (X_n, Y_n) —
+        is the pair of block identities A(k) = M(k) C(k), B(k) = M(k) D(k),
+        M(k) = Δ(k) Σ_V(k)⁻¹, at every regime k. We evaluate the relative
+        block residuals
 
-            r(j, k) = ‖β₁(j, k)‖_F / ‖[β₁ β₂](j, k)‖_F
+            ‖A(k) − M(k) C(k)‖_F / max(‖A(k)‖_F, ‖M(k) C(k)‖_F)
+            ‖B(k) − M(k) D(k)‖_F / max(‖B(k)‖_F, ‖M(k) D(k)‖_F)
 
-        over all K² pairs and warn if  max_{j,k} r(j, k) > AB_TOL. (The
-        same-regime algebraic residual alone — compute_ab_residual — is
-        necessary but **not** sufficient.)
+        over all regimes and warn if the largest exceeds AB_TOL. (The
+        pairwise regression residual — pu_residual_max — is necessary but
+        **not** sufficient: it vanishes on models this filter is biased on.)
         """
         from awesometmc.utils.ab_constraint import ab_residual_max
 
-        max_rel, (worst_j, worst_k) = ab_residual_max(self._p, relative=True)
+        max_rel, (worst_k, worst_block) = ab_residual_max(self._p, relative=True)
 
         if not np.isfinite(max_rel):
             warnings.warn(
                 f"mode='ngh_kf': could not evaluate the AB residual for "
-                f"regime pair (j={worst_j}, k={worst_k}) — the conditional "
-                f"(Y_n, Y_{{n+1}}) covariance is singular. The filter may be "
-                f"biased. Use mode='gpb2' if in doubt.",
+                f"regime k={worst_k} — Σ_V is singular or ill-conditioned. "
+                f"The filter may be biased. Use mode='gpb2' if in doubt.",
                 RuntimeWarning,
                 stacklevel=3,
             )
@@ -287,10 +288,10 @@ class GSSFilter:
         if max_rel > AB_TOL:
             warnings.warn(
                 f"mode='ngh_kf' assumes AB — the Markovianity of (R, Y), "
-                f"requiring that for every regime pair the predictive law of "
-                f"Y_{{n+1}} not depend on Y_n through X_n — but the model has "
-                f"max relative pairwise residual = {max_rel:.3g} (worst pair "
-                f"(j={worst_j}, k={worst_k})). The filter will be biased. Use "
+                f"i.e. A = Δ Σ_V⁻¹ C and B = Δ Σ_V⁻¹ D at every regime — "
+                f"but the model has max relative block residual = "
+                f"{max_rel:.3g} (worst: regime k={worst_k}, block "
+                f"{worst_block}). The filter will be biased. Use "
                 f"mode='gpb2' for models violating AB, or apply "
                 f"awesometmc.utils.ab_constraint.apply_AB_constraint to enforce AB "
                 f"by recomputing A(k), B(k) via the closed form "

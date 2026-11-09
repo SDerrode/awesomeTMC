@@ -17,8 +17,12 @@ classical collapse filters reproduce the exact Bayes filter:
                       scalar state this is exactly "C = 0 at every regime, or
                       A = M C at every regime", and in higher dimension it also
                       admits a memory confined to the kernel of the channel;
-* constant gain    -- exact iff the AB constraint holds
-                      (:func:`awesometmc.utils.ab_constraint.ab_residual_max`), for
+* constant gain    -- exact iff the AB constraint holds, i.e. the block
+                      identities A_r = M_r C_r and B_r = M_r D_r at every
+                      regime r (the block test
+                      :func:`awesometmc.utils.ab_constraint.ab_residual_max`; the
+                      pairwise regression residual ``pu_residual_max`` is
+                      weaker and does not characterize the domain), for
                       the Gaussian initial law with the stationary moments
                       (p(r_1) = pi_inf, Z_1 | r_1 = k ~ N(mu(k), Sigma(k)))
                       from which ``GSSFilter(mode="ngh_kf")`` starts.
@@ -116,7 +120,9 @@ def exactness_domains(params: GSSParams, *, tol: float = 1e-10) -> dict[str, boo
     Returns ``{"imm": ..., "gpb2": ..., "constant_gain": ..., "assumption_g": ...}``;
     the residuals behind the booleans are :func:`imm_domain_residual`,
     :func:`gpb2_domain_residual`, :func:`awesometmc.utils.ab_constraint.ab_residual_max`
-    and :func:`assumption_g`. When ``assumption_g`` is False the three domain
+    (the block test ``A_r = M_r C_r``, ``B_r = M_r D_r`` at every regime, with
+    the same relative scaling as :func:`cross_annihilation_residual`) and
+    :func:`assumption_g`. When ``assumption_g`` is False the three domain
     flags are still the block conditions of the theorems, but their *necessity*
     is no longer guaranteed (a filter may be exact off its domain).
     """

@@ -23,7 +23,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 import numpy as np
 
 from awesometmc.gui.param_panel import ParamPanel
-from awesometmc.utils.ab_constraint import compute_AB, compute_ab_residual
+from awesometmc.utils.ab_constraint import compute_AB, compute_ab_block_residuals
 
 
 # ---------------------------------------------------------------------------
@@ -171,16 +171,18 @@ def test_ab_badge_amber_for_generic_model(qtbot):
     F, SW = _seed_model(tab, q, s)
 
     # Sanity: the seeded model is generically non-AB-constrained.
-    res = compute_ab_residual(
+    R_A, R_B = compute_ab_block_residuals(
         A=F[:q, :q],
         B=F[:q, q:],
         C=F[q:, :q],
         D=F[q:, q:],
-        SU=SW[:q, :q],
         Dt=SW[:q, q:],
         SV=SW[q:, q:],
+        relative=True,
     )
-    assert np.linalg.norm(res, "fro") > 1e-6, "test seed should yield a non-AB-constrained model"
+    assert max(np.linalg.norm(R_A, "fro"), np.linalg.norm(R_B, "fro")) > 1e-6, (
+        "test seed should yield a non-AB-constrained model"
+    )
 
     text = tab._ab_badge.text()
     assert "⚠" in text, f"expected ⚠ in badge, got {text!r}"

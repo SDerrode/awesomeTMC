@@ -55,9 +55,16 @@ B(k) = \Delta(k)\,\Sigma_V(k)^{-1}\,D(k).
 $$
 
 This is the unique parametrisation of $(A, B)$ compatible with AB
-*uniformly* in the joint covariance $\Sigma(r_1)$, making the $K^2$
-regime-pair equations of AB trivially satisfied. The free blocks per
-regime become $(C, D, \Sigma_U, \Sigma_V, \Delta)$.
+*uniformly* in the joint covariance $\Sigma(r_1)$. The free blocks per
+regime become $(C, D, \Sigma_U, \Sigma_V, \Delta)$, and a model is tested
+for AB **block by block**: it is AB-constrained iff the residuals
+$A(k) - M(k) C(k)$ and $B(k) - M(k) D(k)$, $M(k) = \Delta(k) \Sigma_V(k)^{-1}$,
+vanish at every regime (`ab_residual_max`, relative to the size of the two
+terms of each difference). The weaker *pairwise regression* condition — that
+$X_{n+1}$ be independent of $Y_n$ given $(R_n, R_{n+1}, Y_{n+1})$ for the
+stationary law of an AB model — is kept as a diagnostic (`pu_residual_max`);
+it vanishes on models the constant-gain filter is biased on, so it is not an
+AB test.
 
 ```python
 from awesometmc.utils.ab_constraint import compute_AB, apply_AB_constraint
@@ -281,7 +288,7 @@ sim_path, df = filt.run(N=1000, seed=42, output_dir="data/simulated")
 
 ```python
 from awesometmc.utils.ab_constraint import (
-    apply_AB_constraint, compute_AB, compute_ab_residual,
+    ab_residual_max, apply_AB_constraint, compute_AB, compute_ab_block_residuals,
 )
 
 # Apply A = Δ Σ_V⁻¹ C, B = Δ Σ_V⁻¹ D to all regimes at once
@@ -290,9 +297,19 @@ constrained_params = apply_AB_constraint(params)
 # Or compute (A, B) for a single regime from (C, D, Δ, Σ_V)
 A, B = compute_AB(C, D, Delta, SV)
 
-# Verify any (A, B, C, D, Σ_U, Δ, Σ_V) satisfies AB:
-F = compute_ab_residual(A, B, C, D, SU, Delta, SV)  # ‖F‖_F = 0 ⇔ AB holds
+# Verify that one regime (A, B, C, D, Δ, Σ_V) satisfies AB, block by block:
+R_A, R_B = compute_ab_block_residuals(A, B, C, D, Delta, SV)  # A − M C, B − M D
+# ... or a whole model: largest relative block residual over the regimes,
+# with the regime and block that attain it. 0 ⇔ AB holds.
+max_rel, (k, block) = ab_residual_max(params)
 ```
+
+`validate_ngh_msm`, `exactness_domains(...)["constant_gain"]` and the
+`"ngh_kf"` warning of `GSSFilter` all use this block test. The pairwise
+regression residuals of the earlier releases are still available as
+`pu_residual_max` / `compute_pu_pair_residual` / `compute_pu_residual`; they
+are necessary for AB but **not sufficient**, and must not be used to decide
+whether the constant-gain filter is exact.
 
 ---
 
@@ -476,7 +493,7 @@ The three exactness domains of the paper can be tested on any model:
 |---|---|---|
 | order-1 IMM | C<sub>r</sub> = 0 for every regime | `imm_domain_residual` |
 | GPB2 | C<sub>k</sub>(A<sub>j</sub> − M<sub>j</sub>C<sub>j</sub>) = 0 for every pair (j, k) | `gpb2_domain_residual`, `cross_annihilation_residual` |
-| constant gain | AB constraint | `awesometmc.utils.ab_constraint.ab_residual_max` |
+| constant gain | AB constraint, A<sub>r</sub> = M<sub>r</sub>C<sub>r</sub> and B<sub>r</sub> = M<sub>r</sub>D<sub>r</sub> for every regime | `awesometmc.utils.ab_constraint.ab_residual_max` (block test) |
 
 ```python
 from awesometmc.utils.exactness import exactness_domains, assumption_g
