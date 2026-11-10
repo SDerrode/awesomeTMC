@@ -18,6 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   NGH exact filter (machine precision). Backs the internal report `docs/rapport_imm_cgo`
   (`python -m awesometmc.experiments.imm_cgo_projection [--seeds 200] [--out DIR]`).
 
+### Changed
+- `.zenodo.json`: description and keywords aligned with `codemeta.json` and the HAL record
+  (hal-05774496): the former text still described the 2.x "AB-constrained GSS framework" and
+  the vehicle and ENSO studies. Takes effect on the Zenodo record of the next release.
+
 ## [3.3.0] — 2026-11-09
 
 ### Changed
