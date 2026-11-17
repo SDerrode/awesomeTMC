@@ -242,16 +242,28 @@ def test_sensitivity_plan_has_52_admissible_perturbations_per_family():
                 np.testing.assert_allclose(ga, c["t"] if family == "M" else 0.0, atol=1e-13)
 
 
-def test_case_e_writes_results_and_figure(tmp_path, monkeypatch):
+def _small_grids(monkeypatch):
     small = {
         "M": {**S.FAMILIES["M"], "grid": (0.0, 0.5)},
         "N": {**S.FAMILIES["N"], "grid": (0.4, 1.0)},
     }
     monkeypatch.setattr(S, "FAMILIES", small)
+
+
+def test_case_e_writes_results(tmp_path, monkeypatch):
+    _small_grids(monkeypatch)
+    monkeypatch.setattr(S, "_plot_e", lambda res, path: None)  # matplotlib is optional
     res = S.exp_e(tmp_path, orders=(8, 12, 16, 24), tol=1e-3)
     stored = json.loads((tmp_path / "exp_e.json").read_text())
     assert [(r["family"], r["t"]) for r in stored["rows"]] == POINTS
     assert all(r["converged"] for r in res["rows"])
+    assert stored["rows"] == res["rows"]
+
+
+def test_case_e_figure(tmp_path, monkeypatch):
+    pytest.importorskip("matplotlib")
+    _small_grids(monkeypatch)
+    S.exp_e(tmp_path, orders=(8, 12, 16, 24), tol=1e-3)
     assert (tmp_path / "fig_e_stationary.pdf").stat().st_size > 5000
     (tmp_path / "fig_e_stationary.pdf").unlink()
     S.replot(tmp_path)
