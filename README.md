@@ -437,6 +437,7 @@ per subsection:
 python -m awesometmc.experiments.tac_simulations a          # Section V-A  (~10 s)
 python -m awesometmc.experiments.tac_simulations b          # Section V-B  (~15 min)
 python -m awesometmc.experiments.tac_simulations d          # Section V-C  (~2 min, cached USGS data in data/real/rivers)
+python -m awesometmc.experiments.tac_simulations e          # stationary THGMSMs (~75 s, no simulation)
 python -m awesometmc.experiments.tac_simulations all        # a, b and d
 python -m awesometmc.experiments.tac_simulations timing     # computing times per time step
 python -m awesometmc.experiments.tac_simulations replot     # tables and figures from the stored results
@@ -450,6 +451,7 @@ The outputs are written to `results/tac_simulations/` (`--out` to change it):
 | `a` | §V-A, Table I and the λ figure | `table_a.tex`, `fig_a_lambda.pdf`, `exp_a.json` | Error increase at n = 2 when a THGMSM is replaced by a CGOMSM1 or a CGOMSM2, regime known: closed forms, checked by Monte Carlo |
 | `b` | §V-B, Table II and the path figure | `table_b.tex`, `fig_b_homotopy.pdf`, `exp_b.json`, `exp_b_seq.npz` | Path of THGMSMs from a CGOMSM1 to a CGOMSM2: exact filters of both families against the exact filter by enumeration (N = 10) and an RBPF (N = 200); Monte Carlo half-widths, bootstrap of the crossing point, RBPF accuracy check, initial transient at the two ends of the path |
 | `d` | §V-C, Table III and the flood figure | `table_d.tex`, `fig_d_rivers.pdf`, `exp_d.json` | Real river-discharge data (USGS, three reaches, 2014–2023) with the gauged tributary inflow as a measured input: THGMSM, CGOMSM1 (also with \|A\| ≤ 0.99) and CGOMSM2 fitted per rising/falling regime, filters run on the test years, static regression as a reference, paired block-bootstrap intervals, regime accuracy ([`tac_rivers.py`](awesometmc/experiments/tac_rivers.py)) |
+| `e` | stationary THGMSMs, three-panel figure | `fig_e_stationary.pdf`, `exp_e.json` | CGOMSM1 and CGOMSM2 as approximate models of a stationary THGMSM that belongs to neither family (two families of THGMSMs, study of U. Hubert-Almuzara): errors of the estimate of X₃ given y₁:₃, regimes hidden, computed by Gauss–Hermite quadrature on the four regime paths (refined until two successive changes below 1e-7), with their split into regression, weight and interaction terms; `python -m awesometmc.experiments.tac_stationary sensitivity` adds 104 one-at-a-time perturbations (`exp_e_sensitivity.json`) ([`tac_stationary.py`](awesometmc/experiments/tac_stationary.py)) |
 | `timing` | §V | `timing.json` | Time per step of the exact CGOMSM1/CGOMSM2 filters, of the RBPF and of the enumeration |
 
 **Notes**

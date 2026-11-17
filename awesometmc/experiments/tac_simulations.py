@@ -52,9 +52,12 @@ Case ``timing``: computing time per time step of the filters of case b (timing.j
 Case ``d`` (Section V-C of the current version, ``exp_d``): river discharge with a measured tributary
     inflow as known input (USGS NWIS, three reaches); see ``awesometmc/experiments/tac_rivers.py``. Case ``c``
     (vehicle data) is the real-data study of an earlier version of the paper.
+Case ``e`` (``exp_e``, not run by ``all``): CGOMSM1 and CGOMSM2 as approximate models of stationary
+    THGMSMs, errors of the estimate of X_3 given y_{1:3} by quadrature (no simulation), study of
+    U. Hubert-Almuzara; see ``awesometmc/experiments/tac_stationary.py``.
 Case ``replot``: regenerates the tables and figures from the stored JSON files, without simulating.
 
-Run:  python -m awesometmc.experiments.tac_simulations [a|b|c|d|all|transient|timing|replot] [--out DIR]
+Run:  python -m awesometmc.experiments.tac_simulations [a|b|c|d|e|all|transient|timing|replot] [--out DIR]
                                                 [--data DIR]
 """
 
@@ -1420,6 +1423,10 @@ def replot(out: Path):
         d = json.loads((out / "exp_d.json").read_text())
         _table_d(d, out / "table_d.tex")
         _plot_d(d, out / "fig_d_rivers.pdf")
+    if (out / "exp_e.json").exists():
+        from awesometmc.experiments.tac_stationary import _plot_e
+
+        _plot_e(json.loads((out / "exp_e.json").read_text()), out / "fig_e_stationary.pdf")
 
 
 def main():
@@ -1428,7 +1435,7 @@ def main():
         "which",
         nargs="?",
         default="all",
-        choices=("a", "b", "c", "d", "all", "timing", "replot", "transient"),
+        choices=("a", "b", "c", "d", "e", "all", "timing", "replot", "transient"),
     )
     ap.add_argument("--out", type=Path, default=OUT)
     ap.add_argument("--seeds-short", type=int, default=300)
@@ -1474,6 +1481,10 @@ def main():
         from awesometmc.experiments.tac_rivers import exp_d
 
         exp_d(a.out)
+    if a.which == "e":  # stationary THGMSMs (quadrature); sensitivity study: see tac_stationary
+        from awesometmc.experiments.tac_stationary import _print_e, exp_e
+
+        _print_e(exp_e(a.out))
 
 
 if __name__ == "__main__":

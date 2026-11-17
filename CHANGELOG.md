@@ -8,6 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **`awesometmc/experiments/tac_stationary.py`**, case `e` of `tac_simulations.py` — CGOMSM1
+  and CGOMSM2 as approximate models of a stationary THGMSM that belongs to neither family
+  (experiment of the IEEE TAC paper designed by U. Hubert-Almuzara; rewriting of his package
+  `stationary_cgomsm` with the notation of the paper and the conventions of `tac_simulations`).
+  Two families of scalar two-regime THGMSMs (`M`: the conditional autoregression γ of the state
+  varies, the law of the observations being fixed; `N`: γ = 0 and the weight of the previous
+  observation varies); estimates of X₃ given y₁:₃ with hidden regimes in the THGMSM, the
+  CGOMSM1, the CGOMSM2 and the CGOMSM1 without autoregression; mean square errors under the
+  THGMSM by tensor Gauss–Hermite quadrature on the four regime paths, refined until all the
+  values change by less than 1e-7 on two successive refinements; split of the excess errors
+  into regression, weight and interaction terms. Outputs `exp_e.json` and the three-panel
+  figure `fig_e_stationary.pdf`; `python -m awesometmc.experiments.tac_stationary sensitivity`
+  runs 104 one-at-a-time perturbations (`exp_e_sensitivity.json`).
+- `tests/test_tac_stationary.py`: construction of the THGMSMs, estimates against the
+  enumeration of all the regime paths and against the library (`exact_mixture_filter`,
+  `GSSFilter(mode="gpb2")`, `apply_AB_constraint`), properties used in the paper, quadrature
+  against the published values and a Monte Carlo simulation.
 - **`awesometmc/experiments/imm_cgo_projection.py`** — "is the IMM a nearest-CGO filter?"
   (question of W. Pieczynski, 2026-09-29). Along the CGO → NGH homotopy of
   `homotopy_cgo_ngh.py` (same models, data and metric), the IMM fed the true model is
