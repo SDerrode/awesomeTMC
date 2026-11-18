@@ -8,6 +8,8 @@ density in between (Bouyahia, Derrode, Pieczynski, IEEE TFS 2020).
 laws    ``FuzzyMarkovLaw``, ``FMC1``, ``FMC2``, ``FuzzyGrid``, ``mpm_jumps``
 model   ``FuzzyCGOMSM`` (specification, simulation, discretisation) and
         ``FuzzyDiscretisation`` (the model on a grid, as a ``PairGSSParams``)
+estimation  ``fit_supervised``, ``fit_law``, ``fit_gaussian``: a model from a sample
+        whose regimes are known ([BDP20], Section VII)
 
 A fuzzy model is filtered through its discretisation, by ``GSSFilter``:
 
@@ -18,8 +20,27 @@ A fuzzy model is filtered through its discretisation, by ``GSSFilter``:
     disc = model.discretise(F=5)
     filt = disc.filter()
     estimates = [filt.step(yn).E_x for yn in y]
+
+and smoothed the same way, all the observations at once:
+
+    E_x, Var_x, gamma, log_lik = disc.smoother(y)
+    r_hat = disc.mpm(gamma)
+
+A model is estimated from a sample whose regimes are known by
+
+    from awesometmc.fuzzy import fit_supervised
+
+    fit = fit_supervised(r, x, y, law="fmc1")
+    disc = fit.model.discretise(F=5)
 """
 
+from awesometmc.fuzzy.estimation import (
+    FuzzyFit,
+    GaussianFit,
+    fit_gaussian,
+    fit_law,
+    fit_supervised,
+)
 from awesometmc.fuzzy.laws import FMC1, FMC2, FuzzyGrid, FuzzyMarkovLaw, mpm_jumps
 from awesometmc.fuzzy.model import INTERPOLATIONS, FuzzyCGOMSM, FuzzyDiscretisation
 
@@ -29,7 +50,12 @@ __all__ = [
     "INTERPOLATIONS",
     "FuzzyCGOMSM",
     "FuzzyDiscretisation",
+    "FuzzyFit",
     "FuzzyGrid",
     "FuzzyMarkovLaw",
+    "GaussianFit",
+    "fit_gaussian",
+    "fit_law",
+    "fit_supervised",
     "mpm_jumps",
 ]

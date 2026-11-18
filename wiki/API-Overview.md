@@ -136,7 +136,8 @@ for yn in y:
 | `FuzzyMarkovLaw`, `FMC1`, `FMC2` | law of the regime chain: densities w.r.t. `δ₀ + δ₁ + Lebesgue`, sampler, discretisation, hardening |
 | `FuzzyGrid` | quadrature of the regime integrals: `midpoint(F)` or `custom(nodes, weights)` |
 | `FuzzyCGOMSM` | the model: means linear and covariances bilinear between four hard corners; `simulate`, `discretise`, `harden`, `known_jumps_filter` |
-| `FuzzyDiscretisation` | the model on a grid: `nodes`, `params` (a `PairGSSParams`), `filter()`, `mpm()`, `mean_jump()` |
+| `FuzzyDiscretisation` | the model on a grid: `nodes`, `params` (a `PairGSSParams`), `filter()`, `smoother(ys)`, `mpm()`, `mean_jump()` |
+| `fit_supervised`, `fit_law`, `fit_gaussian` | a model from a sample `(r, x, y)` whose regimes are known |
 
 A fuzzy model is filtered through its discretisation, which is a hard switching
 model with pair-dependent parameters; the cost per step grows as `K²`.
@@ -148,6 +149,35 @@ expects hard corners that satisfy
 it has to correct them, and raises a `CovarianceError` when they are too far for a
 valid model to remain. `interpolation="bilinear"` is the letter of the paper; the
 discretised model then has `C ≠ 0` and is filtered approximately by mode `"gpb2"`.
+
+**Smoothing.** `disc.smoother(ys)` returns `(E_x, Var_x, gamma, log_lik)` given all
+the observations. It is `reweight_smoother` of `awesometmc.filter` applied to the
+discretised model: with `C = 0` the future informs the state through the regimes
+only, so the smoothed law is the filtered per-regime summaries (read from
+`GSSFilter.regime_summaries()`, mode `"cgo"`) re-weighted by the smoothed regime
+probabilities. `regime_smoother(params, ys, kernel="c0")` and
+`chain_log_likelihood(params, ys, kernel="c0")` accept any `PairGSSParams` as well.
+
+**Estimation from labelled data** (Section VII of the paper).
+
+```python
+from awesometmc.fuzzy import fit_supervised
+
+fit = fit_supervised(r, x, y, law="fmc1")   # r in [0, 1], known
+disc = fit.model.discretise(F=5)
+fit.gaussian.n_hard_pairs                   # diagnostics of the Gaussian part
+```
+
+The law of the jumps is fitted on the pairs `(r_n, r_{n+1})` (`fit_law`: maximum
+likelihood or closed-form moments for `FMC1`, band width and mass for `FMC2`). The
+means and the four corner covariances are fitted by `fit_gaussian`:
+`method="regression"` (default) is a least-squares fit on all the samples, fuzzy
+ones included; `method="hard"` uses the hard samples and hard pairs only, as in the
+paper, and fails when a hard pair never occurs. Corners are made to satisfy the
+`C = 0` identity (`interpolation="cgo"`) and kept positive definite; both
+corrections are reported in `fit.gaussian`.
+
+A worked example is in `notebooks/03_fuzzy_switches.ipynb`.
 
 The scalar reference implementation of the paper and the reproduction of its
 Section VI are in `awesometmc/experiments/fuzzy_cgofmsm.py` and
