@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **`GSSFilter(mode="cgo")`** — exact filter of the models whose observation does not read
+  the state (C = 0; `C(j, k) = 0` for every pair with a `PairGSSParams`), whatever the initial
+  law. It carries the mean and covariance of `X_n` given `(r_n, y_{1:n})` and uses
+  `X_{n+1} = A X_n + B y_n + b_X + G_X u_n + M ν + ε`, `M = Δ Σ_V⁻¹`, `ν` the pair innovation:
+  every gain and covariance factor is computed once at construction, a step involves no
+  matrix inversion and no Kalman update and is vectorised over the `K²` pairs. Same means,
+  second moments, regime posteriors, innovations and likelihoods as `mode="gpb2"` (to
+  1e-10), 4 to 100 times faster for K = 2 to 12 (about 65 µs per step for a scalar state,
+  nearly independent of K). Default mode of a `PairGSSParams` with `is_cgo()`; the default
+  of a `GSSParams` is unchanged. A `RuntimeWarning` is emitted when C is not zero: the
+  recursion then filters the model with C set to zero.
+- `tests/test_cgo_filter_mode.py` (19 tests): agreement with `gpb2` and with the enumeration
+  of all regime paths (several `K`, `q`, `s`, exogenous input, non-stationary initial law,
+  unreachable regimes), warning and behaviour when C is not zero, `reset()` and `run()`.
 - **`awesometmc/classes/PairGSSParams.py`** — parameters indexed by the regime pair
   `(r_n, r_{n+1})`: `Z_{n+1} = F(r_n, r_{n+1}) Z_n + b(r_n, r_{n+1}) + G(r_n, r_{n+1}) u_n +
   W_{n+1}`, `W_{n+1} ~ N(0, Σ_W(r_n, r_{n+1}))`. `GSSParams` is the special case where nothing
