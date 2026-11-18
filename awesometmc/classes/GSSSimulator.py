@@ -20,6 +20,13 @@ otherwise the model is autonomous and behaves exactly as before.  The transition
 to Z_n is driven by the *previous* input u_{n-1}, consistent with the slaving
 read-out X_n = M_{r_n} y_n + N_{r_n} u_{n-1} of the exact filter.
 
+With a :class:`~awesometmc.classes.PairGSSParams.PairGSSParams` the transition
+parameters depend on the regime pair:
+    Z_n ~ N(F(R_{n-1}, R_n) @ Z_{n-1} + b(R_{n-1}, R_n) + G(R_{n-1}, R_n) @ u_{n-1},
+            Sigma_W(R_{n-1}, R_n))
+The random draws are consumed in the same order, so pair parameters broadcast
+from a ``GSSParams`` (``params.as_pair()``) give the same trajectory, bit for bit.
+
 Each step yields (n, r_n, x_n, y_n) where:
     n    : int          — time index in {0, ..., N-1}
     r_n  : int          — state in {0, ..., K-1}
@@ -46,6 +53,7 @@ import time
 import numpy as np
 
 from awesometmc.classes.GSSParams import GSSParams
+from awesometmc.classes.PairGSSParams import PairGSSParams
 from awesometmc.utils.exceptions import ParamError, SimulationError
 
 __all__ = ["GSSSimulator"]
@@ -59,8 +67,8 @@ class GSSSimulator:
 
     Parameters
     ----------
-    params : GSSParams
-        All model parameters.
+    params : GSSParams or PairGSSParams
+        All model parameters, indexed by the arrival regime or by the regime pair.
     N : int
         Total number of time steps to generate (n = 0 to N-1).
         Must be a strictly positive integer.
@@ -92,7 +100,7 @@ class GSSSimulator:
 
     def __init__(
         self,
-        params: GSSParams,
+        params: GSSParams | PairGSSParams,
         N: int,
         seed: int | None = None,
         u: np.ndarray | object | None = None,
@@ -107,7 +115,7 @@ class GSSSimulator:
         self._reset_state(seed)
 
     @staticmethod
-    def _validate_input(u, params: GSSParams, N: int):
+    def _validate_input(u, params: GSSParams | PairGSSParams, N: int):
         """Normalise the optional exogenous input; return array/callable/None."""
         if u is None:
             return None
@@ -185,13 +193,20 @@ class GSSSimulator:
         else:
             # --- Transition step ---
             r_n = int(self._rng.choice(params.K, p=params.P[self._r_prev]))
-            F = params.f_matrix.F(r_n)  # (dim_z, dim_z)
-            L = params.noise_cov.chol_W(r_n)  # (dim_z, dim_z)
+            if isinstance(params, PairGSSParams):
+                # parameters of the pair (r_{n-1}, r_n)
+                r_p = self._r_prev
+                F, L = params.F(r_p, r_n), params.chol_W(r_p, r_n)
+                bias, gain = params.b(r_p, r_n), params.G(r_p, r_n)
+            else:
+                F = params.f_matrix.F(r_n)  # (dim_z, dim_z)
+                L = params.noise_cov.chol_W(r_n)  # (dim_z, dim_z)
+                bias, gain = params.b(r_n), params.G(r_n)
             noise = self._rng.standard_normal((params.dim_z, 1))
-            z_n = F @ self._z_prev + params.b(r_n) + L @ noise
+            z_n = F @ self._z_prev + bias + L @ noise
             # Exogenous input: transition to Z_n is driven by u_{n-1}.
             if params.p > 0 and self._u is not None:
-                z_n = z_n + params.G(r_n) @ self._get_u(n - 1)
+                z_n = z_n + gain @ self._get_u(n - 1)
 
         if __debug__:
             if not np.all(np.isfinite(z_n)):
@@ -336,7 +351,7 @@ class GSSSimulator:
         return self._N
 
     @property
-    def params(self) -> GSSParams:
+    def params(self) -> GSSParams | PairGSSParams:
         return self._params
 
     def __repr__(self) -> str:

@@ -371,6 +371,18 @@ class GSSParams:
 
         return pi / total
 
+    def as_pair(self):
+        """
+        The same model with parameters indexed by the regime pair ``(r_n, r_{n+1})``.
+
+        Returns a :class:`~awesometmc.classes.PairGSSParams.PairGSSParams` whose
+        ``F(j, k)``, ``Sigma_W(j, k)``, ``b(j, k)`` and ``G(j, k)`` equal
+        ``F(k)``, ``Sigma_W(k)``, ``b(k)`` and ``G(k)`` for every departure regime ``j``.
+        """
+        from awesometmc.classes.PairGSSParams import PairGSSParams
+
+        return PairGSSParams.from_arrival(self)
+
     def stationary_distribution(self) -> np.ndarray:
         """
         Return the stationary distribution of the Markov chain.

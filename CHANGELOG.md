@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **`awesometmc/classes/PairGSSParams.py`** — parameters indexed by the regime pair
+  `(r_n, r_{n+1})`: `Z_{n+1} = F(r_n, r_{n+1}) Z_n + b(r_n, r_{n+1}) + G(r_n, r_{n+1}) u_n +
+  W_{n+1}`, `W_{n+1} ~ N(0, Σ_W(r_n, r_{n+1}))`. `GSSParams` is the special case where nothing
+  depends on the departure regime (`GSSParams.as_pair()`, `PairGSSParams.from_arrival()`,
+  `to_arrival()`). `augmented()` returns the same model as a `GSSParams` on the `K²` regimes
+  `(r_{n-1}, r_n)`; `is_cgo()` tests `C(j, k) = 0` for every pair. This is the setting of the
+  pair-dependent CGOMSM of Abbassi et al. (2015), until now handled by ad hoc dictionary
+  formats in `awesometmc/experiments/` (`imm_cgo_projection`, `smoothing_exactness`), and the
+  form a fuzzy switching model takes once discretised.
+- `GSSSimulator` and `GSSFilter(mode="gpb2")` accept a `PairGSSParams`. The GPB2 expansion
+  to the `K²` pairs reads the parameters of the pair, at the same cost as before; it is the
+  exact filter when `C(j, k) = 0` for every pair. `mode="ngh_kf"` rejects pair parameters.
+  Arrival-indexed models are unaffected: parameters broadcast with `as_pair()` give the same
+  trajectory and the same filter output bit for bit.
+- `tests/test_pair_gss_params.py` (27 tests): conversions, bit identity with the
+  arrival-indexed code on the models M1–M3 and on a model with exogenous input, exactness
+  against the enumeration of all regime paths for `C = 0` (several `K`, `q`, `s`), agreement
+  with the arrival-indexed filter on the augmented regimes, validation errors.
 - **`awesometmc/experiments/tac_stationary.py`**, case `e` of `tac_simulations.py` — CGOMSM1
   and CGOMSM2 as approximate models of a stationary THGMSM that belongs to neither family
   (experiment of the IEEE TAC paper designed by U. Hubert-Almuzara; rewriting of his package
