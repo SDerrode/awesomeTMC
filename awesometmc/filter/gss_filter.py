@@ -2,7 +2,7 @@
 """
 awesometmc/filter/gss_filter.py
 ========================
-Switching filter for the GSS model, with two operating modes.
+Switching filter for the GSS model, with three operating modes.
 
 Modes
 -----
@@ -69,12 +69,34 @@ Modes
     initial law. The exactness region stated above for C ≠ 0 was established for
     arrival-indexed parameters only.
 
+``mode="cgo"`` — exact filter of the models whose observation does not read the state
+    For models with C = 0 (CGOMSM1; C(j, k) = 0 for every pair when the
+    parameters are indexed by the regime pair), Y_{n+1} given (r_n, r_{n+1}, y_n)
+    does not depend on X, so (R, Y) is a Markov chain and, with
+    M = Δ Σ_V⁻¹ and the pair innovation ν = y_{n+1} − D y_n − b_Y − G_Y u_n,
+
+        X_{n+1} = A X_n + B y_n + b_X + G_X u_n + M ν + ε,   ε ~ N(0, Σ_U − M Δᵀ).
+
+    The filter carries, per regime, the mean and covariance of X_n given
+    (r_n, y_{1:n}); a step weights the K² pairs by the likelihood of ν, moves
+    the K means through the affine map above and merges them. Every gain and
+    every covariance factor is computed once at construction: a step involves no
+    matrix inversion and no Kalman update, and is vectorised over the pairs.
+
+    Exact, whatever the initial law, for arrival-indexed and for pair-indexed
+    parameters; on such models it returns the same estimates as ``"gpb2"``, which
+    spends K² Kalman updates per step on the same quantities. A
+    ``RuntimeWarning`` is emitted at construction when C is not zero (relative
+    size above ``CGO_TOL``): the recursion then ignores C, i.e. it filters the
+    model in which C has been set to zero.
+
 Default mode (``mode=None``)
 ---------------------------
 When ``mode`` is left ``None`` the filter dispatches on the *type* of
 ``params``: a :class:`~awesometmc.classes.GSSParams.NGHMSMParams` (a validated
-CGOMSM2, where AB holds by construction) defaults to ``"ngh_kf"``; any other
-:class:`GSSParams`, and any :class:`PairGSSParams`, defaults to ``"gpb2"``. Pass
+CGOMSM2, where AB holds by construction) defaults to ``"ngh_kf"``; a
+:class:`PairGSSParams` with C(j, k) = 0 for every pair defaults to ``"cgo"``; any
+other :class:`GSSParams` or :class:`PairGSSParams` defaults to ``"gpb2"``. Pass
 ``mode`` explicitly to override; ``"ngh_kf"`` rejects a :class:`PairGSSParams`.
 
 Joseph form (optional, ngh_kf only)
@@ -116,12 +138,15 @@ from awesometmc.utils.input_signal import make_input
 
 __all__ = ["GSSFilter", "FilterResult"]
 
-FILTER_MODES = ("ngh_kf", "gpb2")
+FILTER_MODES = ("ngh_kf", "gpb2", "cgo")
 # Relative block residual of the AB constraint, max over the regimes k of
 # ‖A(k) − M(k) C(k)‖_F / max(‖A(k)‖_F, ‖M(k) C(k)‖_F) and the same for
 # (B, D), with M(k) = Δ(k) Σ_V(k)⁻¹; below this → AB holds. 1e-6 is the
 # practical floor for float64 matrix arithmetic.
 AB_TOL = 1e-6
+
+# Relative size of the C blocks above which mode="cgo" warns that it is not exact.
+CGO_TOL = 1e-10
 
 # log(2π), used by the fast Gaussian log-pdf (mirrors scipy's _LOG_2PI).
 _LOG_2PI = float(np.log(2.0 * np.pi))
@@ -188,11 +213,12 @@ class GSSFilter:
         posterior covariance uses the Joseph form (paper App. E) instead of
         the short form. Mathematically equivalent under stationarity;
         numerically more stable.
-    mode : {"ngh_kf", "gpb2"} or None, default None
+    mode : {"ngh_kf", "gpb2", "cgo"} or None, default None
         Filter recursion variant. When ``None`` the mode dispatches on the
         type of ``params``: a :class:`~awesometmc.classes.GSSParams.NGHMSMParams`
-        (validated CGOMSM2) uses ``"ngh_kf"``, any other ``GSSParams``
-        uses ``"gpb2"``. An explicit value always overrides.
+        (validated CGOMSM2) uses ``"ngh_kf"``, a ``PairGSSParams`` with
+        C(j, k) = 0 for every pair uses ``"cgo"``, anything else uses
+        ``"gpb2"``. An explicit value always overrides.
 
         * ``"ngh_kf"`` — exact constant-gain filter, with stationary
           pre-computed regime moments and no covariance recursion, so its
@@ -213,6 +239,12 @@ class GSSFilter:
           :mod:`awesometmc.utils.exactness`; for a scalar state: C = 0 at every
           regime, or A = M C at every regime, mixing the two is NOT exact);
           an approximation elsewhere. Use it on any model that violates AB.
+        * ``"cgo"`` — exact filter of the models with C = 0 (the observation
+          does not read the state), for arrival-indexed and for pair-indexed
+          parameters and whatever the initial law. Same estimates as
+          ``"gpb2"`` on these models, without Kalman updates: the gains are
+          computed once and a step is vectorised over the K² pairs. Emits a
+          ``RuntimeWarning`` at construction when C is not zero.
 
     Examples
     --------
@@ -240,7 +272,12 @@ class GSSFilter:
         # constant-gain filter; a general GSSParams uses GPB2 (see module
         # docstring). An explicit mode always overrides.
         if mode is None:
-            mode = "ngh_kf" if isinstance(params, NGHMSMParams) else "gpb2"
+            if isinstance(params, NGHMSMParams):
+                mode = "ngh_kf"
+            elif isinstance(params, PairGSSParams) and params.is_cgo():
+                mode = "cgo"
+            else:
+                mode = "gpb2"
         if mode not in FILTER_MODES:
             raise ValueError(f"Unknown mode {mode!r}. Expected one of: {FILTER_MODES}.")
         if mode == "ngh_kf" and isinstance(params, PairGSSParams):
@@ -260,13 +297,15 @@ class GSSFilter:
                 self._check_ab()
             self._precompute()  # calls _precompute_stationary() internally
         else:
-            # gpb2: no AB pre-computation; joseph flag is ignored
+            # gpb2 / cgo: no AB pre-computation; joseph flag is ignored
             if self._joseph:
                 logger.warning(
-                    "joseph=True has no effect in mode='gpb2' "
-                    "(the per-step posterior covariance is already PSD-floored)."
+                    "joseph=True has no effect in mode=%r (it only concerns 'ngh_kf').", mode
                 )
             self._precompute_gpb2()
+            if mode == "cgo":
+                self._check_cgo()
+                self._precompute_cgo()
         self._reset_state()
 
     # ------------------------------------------------------------------
@@ -532,8 +571,11 @@ class GSSFilter:
             # Posterior regime weights start at the stationary distribution π_∞
             # (computed by _precompute_stationary(), called during __init__).
             self._pi: np.ndarray = self._pi_inf.copy()
-        else:  # "gpb2": start from the model's stated initial law
+        else:  # "gpb2" / "cgo": start from the model's stated initial law
             self._pi = self._pi_start.copy()
+            # "cgo": per-regime mean (K, q) and covariance (K, q, q) of X_n.
+            self._m_x: np.ndarray | None = None
+            self._V_x: np.ndarray | None = None
             # Per-regime couple summaries N(z[k], Pc[k]), seeded by _init_step_gpb2.
             self._z: list[np.ndarray] = []
             self._Pc: list[np.ndarray] = []
@@ -576,6 +618,8 @@ class GSSFilter:
 
         if self._mode == "ngh_kf":
             init_fn, step_fn = self._init_step_ngh_kf, self._update_step_ngh_kf
+        elif self._mode == "cgo":
+            init_fn, step_fn = self._init_step_cgo, self._update_step_cgo
         else:  # "gpb2"
             init_fn, step_fn = self._init_step_gpb2, self._update_step_gpb2
 
@@ -907,6 +951,141 @@ class GSSFilter:
 
         return self._gpb2_result(log_lik, y_new - y_pred)
 
+    # ==================================================================
+    # MODE = "cgo" — exact filter when the observation does not read the state
+    # ==================================================================
+    #
+    # With C = 0, Y_{n+1} | (r_n, r_{n+1}, y_n) ~ N(D y_n + b_Y + G_Y u_n, Σ_V) is free
+    # of X, and X_{n+1} = A X_n + B y_n + b_X + G_X u_n + M ν + ε with M = Δ Σ_V⁻¹,
+    # ν the pair innovation and ε ~ N(0, Σ_U − M Δᵀ). The recursion carries the mean
+    # m[k] and covariance V[k] of X_n given (r_n = k, y_{1:n}); all the arrays below
+    # are indexed [j, k] = (departure, arrival) and computed once.
+    # ------------------------------------------------------------------
+
+    def _check_cgo(self) -> None:
+        """Emit a RuntimeWarning if some C block is not zero (the recursion ignores C)."""
+        q, K = self._p.q, self._p.K
+        worst = 0.0
+        for j in range(K):
+            for k in range(K):
+                F = self._F[j][k]
+                scale = float(np.linalg.norm(F))
+                if scale > 0.0:
+                    worst = max(worst, float(np.linalg.norm(F[q:, :q])) / scale)
+        if worst > CGO_TOL:
+            warnings.warn(
+                f"mode='cgo' assumes C = 0 (the observation does not read the state), but a "
+                f"C block has relative size {worst:.3e} > CGO_TOL={CGO_TOL:.1e}. The filter "
+                f"ignores C: it is exact for the model with C set to zero, not for this one. "
+                f"Use mode='gpb2' for the model as given.",
+                RuntimeWarning,
+                stacklevel=3,
+            )
+
+    def _precompute_cgo(self) -> None:
+        """Stack the per-pair blocks and pre-factorise every Gaussian of the recursion."""
+        p = self._p
+        K, q, s = p.K, p.q, p.s
+        F = np.array(self._F)  # (K, K, dim, dim)
+        SW = np.array(self._SW)
+        bias = np.array(self._b)[..., 0]  # (K, K, dim)
+        self._cA, self._cB, self._cD = F[..., :q, :q], F[..., :q, q:], F[..., q:, q:]
+        self._cbx, self._cby = bias[..., :q], bias[..., q:]
+        if self._G is not None:
+            G = np.array(self._G)  # (K, K, dim, p)
+            self._cGx, self._cGy = G[..., :q, :], G[..., q:, :]
+        Delta, Sv = SW[..., :q, q:], SW[..., q:, q:]
+        self._cM = Delta @ np.linalg.inv(Sv)  # (K, K, q, s)
+        Qx = SW[..., :q, :q] - self._cM @ np.swapaxes(Delta, -1, -2)
+        self._cQx = 0.5 * (Qx + np.swapaxes(Qx, -1, -2))
+        prec, log_norm = np.zeros((K, K, s, s)), np.empty((K, K))
+        for j in range(K):
+            for k in range(K):
+                pr, log_norm[j, k] = _precompute_gaussian_logpdf(Sv[j, k])
+                prec[j, k, : pr.shape[0]] = pr  # fewer rows only for a singular Σ_V
+        self._cprec, self._clog_norm = prec, log_norm
+        self._clogP = np.log(np.asarray(p.P, dtype=float) + 1e-300)
+
+        # initial law: Z_0 | r_0 = k ~ N(mu_z0(k), Sigma_z0(k))
+        mu0 = np.array(self._mu_z0)[..., 0]  # (K, dim)
+        S0 = np.array(self._Sigma_z0)
+        self._c0_mx, self._c0_my = mu0[:, :q], mu0[:, q:]
+        self._c0_gain = S0[:, :q, q:] @ np.linalg.inv(S0[:, q:, q:])  # (K, q, s)
+        V0 = S0[:, :q, :q] - self._c0_gain @ np.swapaxes(S0[:, :q, q:], -1, -2)
+        self._c0_V = 0.5 * (V0 + np.swapaxes(V0, -1, -2))
+        prec0, log_norm0 = np.zeros((K, s, s)), np.empty(K)
+        for k in range(K):
+            pr, log_norm0[k] = _precompute_gaussian_logpdf(S0[k, q:, q:])
+            prec0[k, : pr.shape[0]] = pr
+        self._c0_prec, self._c0_log_norm = prec0, log_norm0
+
+    def _cgo_result(self, log_lik: float, innov: np.ndarray) -> FilterResult:
+        """Marginal X moments from the per-regime means and covariances."""
+        m, V, pi = self._m_x, self._V_x, self._pi
+        E_x = (pi @ m).reshape(-1, 1)
+        E_xx = np.einsum("k,kab->ab", pi, V + m[:, :, None] * m[:, None, :])
+        return FilterResult(
+            n=self._n, E_x=E_x, E_xx=_sym(E_xx), pi=pi, innovation=innov, log_lik=log_lik
+        )
+
+    def _init_step_cgo(self, y1: np.ndarray) -> FilterResult:
+        """Initial step: condition the stated initial law p(Z_0 | r_0) on y_1."""
+        dev = y1.ravel()[None, :] - self._c0_my  # (K, s)
+        white = np.einsum("kab,kb->ka", self._c0_prec, dev)
+        log_w = np.log(self._pi_start + 1e-300) + self._c0_log_norm - 0.5 * np.sum(white**2, axis=1)
+        lse = float(logsumexp(log_w))
+        self._m_x = self._c0_mx + np.einsum("kab,kb->ka", self._c0_gain, dev)
+        self._V_x = self._c0_V.copy()
+        self._pi = np.exp(log_w - lse)
+        y_pred = (self._pi_start @ self._c0_my).reshape(-1, 1)
+        return self._cgo_result(lse, y1 - y_pred)
+
+    def _update_step_cgo(self, y_new: np.ndarray) -> FilterResult:
+        """Weight the K^2 pairs by their innovation, move the K means, merge."""
+        p = self._p
+        K = p.K
+        yp, y = self._y_prev.ravel(), y_new.ravel()
+        u_prev = self._u_prev
+        has_u = self._G is not None and u_prev is not None
+
+        y_pred = self._cD @ yp + self._cby  # (K, K, s)
+        x_drift = self._cB @ yp + self._cbx  # (K, K, q)
+        if has_u:
+            u = u_prev.ravel()
+            y_pred = y_pred + self._cGy @ u
+            x_drift = x_drift + self._cGx @ u
+        nu = y[None, None, :] - y_pred
+        white = np.einsum("jkab,jkb->jka", self._cprec, nu)
+        log_w = (
+            np.log(self._pi + 1e-300)[:, None]
+            + self._clogP
+            + self._clog_norm
+            - 0.5 * np.sum(white**2, axis=2)
+        )
+        log_lik = float(logsumexp(log_w.ravel()))
+        w = np.exp(log_w - log_w.max())
+        w /= w.sum()
+        innov = y_new - np.einsum("j,jk,jka->a", self._pi, p.P, y_pred).reshape(-1, 1)
+
+        # pair-conditional moments of X_{n+1}
+        m_pair = (
+            np.einsum("jkab,jb->jka", self._cA, self._m_x)
+            + x_drift
+            + np.einsum("jkab,jkb->jka", self._cM, nu)
+        )
+        V_pair = np.einsum("jkab,jbc,jkdc->jkad", self._cA, self._V_x, self._cA) + self._cQx
+
+        # merge over the departure regime
+        pi_new = w.sum(axis=0)
+        alive = pi_new > 1e-300
+        cond = np.where(alive[None, :], w / np.where(alive, pi_new, 1.0)[None, :], 1.0 / K)
+        m_new = np.einsum("jk,jka->ka", cond, m_pair)
+        d = m_pair - m_new[None, :, :]
+        V_new = np.einsum("jk,jkab->kab", cond, V_pair + d[..., :, None] * d[..., None, :])
+        self._pi, self._m_x = pi_new, m_new
+        self._V_x = 0.5 * (V_new + np.swapaxes(V_new, -1, -2))
+        return self._cgo_result(log_lik, innov)
+
     def run_csv(self, csv_path: str | pathlib.Path) -> pd.DataFrame:
         """
         Run the filter on observations stored in a CSV file.
@@ -1049,7 +1228,7 @@ class GSSFilter:
 
     @property
     def mode(self) -> str:
-        """Filter mode: ``'ngh_kf'`` or ``'gpb2'``."""
+        """Filter mode: ``'ngh_kf'``, ``'gpb2'`` or ``'cgo'``."""
         return self._mode
 
     @property

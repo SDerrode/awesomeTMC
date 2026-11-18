@@ -286,9 +286,11 @@ def test_filter_run_accepts_pair_params():
 # --------------------------------------------------------------------------
 # Mode dispatch and validation
 # --------------------------------------------------------------------------
-def test_default_mode_is_gpb2_and_ngh_kf_is_rejected():
+def test_default_mode_and_ngh_kf_is_rejected():
     pair = _random_pair_params(50)
-    assert GSSFilter(pair).mode == "gpb2"
+    # C = 0 for every pair: the exact fast mode; otherwise the general one
+    assert GSSFilter(pair).mode == "cgo"
+    assert GSSFilter(_random_pair_params(50, cgo=False)).mode == "gpb2"
     with pytest.raises(ValueError, match="ngh_kf"):
         GSSFilter(pair, mode="ngh_kf")
     # arrival-only pair parameters can go back to the constant-gain filter

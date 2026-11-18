@@ -7,7 +7,7 @@ Module map and the role of each component.
 ```
 awesometmc/
 ├── classes/        # Data containers (parameters, simulator, F matrix)
-├── filter/         # Optimal filter (ngh_kf and gpb2 modes)
+├── filter/         # Optimal filter (ngh_kf, gpb2 and cgo modes)
 ├── learning/       # Supervised + semi-supervised estimators
 ├── models/         # Built-in BaseGSSModel subclasses
 ├── experiments/    # Paper-reproduction pipelines (§6, §7)
@@ -49,10 +49,10 @@ pair = PairGSSParams(K=2, q=1, s=1, P=P, F=F, Sigma_W=SW, pi0=None,
                      mu_z0_list=mu0, Sigma_z0_list=S0)   # F, SW of shape (K, K, 2, 2)
 
 sim  = GSSSimulator(pair, N=1000, seed=42)
-filt = GSSFilter(pair)                     # mode "gpb2"; exact when pair.is_cgo()
+filt = GSSFilter(pair)                     # mode "cgo" when pair.is_cgo(), else "gpb2"
 ```
 
-Accepted by `GSSSimulator` and by `GSSFilter` in mode `"gpb2"` only. Parameters
+Accepted by `GSSSimulator` and by `GSSFilter` in modes `"gpb2"` and `"cgo"`. Parameters
 broadcast with `as_pair()` reproduce the arrival-indexed trajectory and filter
 output bit for bit. `to_arrival()` converts back when nothing depends on the
 departure regime; `augmented()` returns the same model as a `GSSParams` on the
@@ -81,7 +81,7 @@ spectral radius, conditioning, etc.
 ```python
 from awesometmc.filter import GSSFilter
 
-filt = GSSFilter(params, mode="ngh_kf")  # or "gpb2"
+filt = GSSFilter(params, mode="ngh_kf")  # or "gpb2", "cgo"
 res  = filt.step(y)                         # one observation
 print(res.E_x, res.Var_x, res.pi, res.log_lik, res.innovation)
 ```
@@ -90,11 +90,19 @@ print(res.E_x, res.Var_x, res.pi, res.log_lik, res.innovation)
 |---|---|---|
 | `ngh_kf` | constant Kalman gain (precomputed) | requires AB |
 | `gpb2` | full IMM mixing | works for any GSS |
+| `cgo` | vectorised over the K² pairs, no Kalman update | requires C = 0 |
 
-Both modes use the exact pair-conditional predictive covariance, so on
+`ngh_kf` and `gpb2` use the exact pair-conditional predictive covariance, so on
 AB-constrained params they produce numerically identical output (checked
 in `tests/test_filter_modes.py`); `gpb2` is the fallback for
 unconstrained models.
+
+`cgo` is the exact filter of the models whose observation does not read the
+state (C = 0, for arrival-indexed or pair-indexed parameters). On these models
+it returns the same estimates as `gpb2` — which is exact there too — 4 to 100
+times faster for K = 2 to 12, because every gain is computed once at
+construction. It is the default mode of a `PairGSSParams` with `is_cgo()`, and
+warns when C is not zero.
 
 Note that `ngh_kf` issues a `RuntimeWarning` if the params do not
 satisfy AB — you can suppress this with `warnings.catch_warnings()`
