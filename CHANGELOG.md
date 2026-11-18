@@ -8,6 +8,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **`awesometmc/fuzzy/`** — Gaussian linear systems with fuzzy switches (Bouyahia, Derrode,
+  Pieczynski, IEEE TFS 2020): the regime takes its values in `[0, 1]`, with positive
+  probability on the hard regimes 0 and 1 and a density in between. `FuzzyMarkovLaw`, `FMC1`,
+  `FMC2` (densities w.r.t. `δ₀ + δ₁ + Lebesgue`, sampler, discretisation, hardening),
+  `FuzzyGrid` (midpoint or custom quadrature), `FuzzyCGOMSM` (means linear and covariances
+  bilinear between four hard corners, any dimensions `q`, `s`; `simulate`, `discretise`,
+  `harden`, `known_jumps_filter`), `FuzzyDiscretisation` (the model on a grid as a
+  `PairGSSParams`, with `filter()`, `mpm()`, `mean_jump()`). A fuzzy model is filtered through
+  its discretisation by `GSSFilter`. `interpolation="cgo"` (default) keeps `C = 0` for every
+  pair of regimes, so the filter (mode `"cgo"`) is exact for the discretised model; it warns
+  when the hard corners have to be corrected and raises when no valid model is left.
+  `interpolation="bilinear"` is the letter of the paper, filtered approximately by `"gpb2"`.
+- **`awesometmc/experiments/fuzzy_cgofmsm.py`** — scalar reference implementation of the
+  paper, written from it: the five-step filter of Section IV, the MPM rule, the regime
+  smoother of its unpublished Appendix B, the known-jumps filter, and the ground truth by
+  enumeration of all regime paths. **`fuzzy_cgofmsm_paper.py`** reproduces Fig. 5 and Table I
+  (`--api public` through `awesometmc.fuzzy`): the jump errors, the plateau from F = 3 and the
+  relative gains agree with the paper; the state errors come out 0.04 higher for the three
+  filters alike, cause not found. Findings on the paper, flagged `NOTE [BDP20]` in the code
+  and pinned by tests: the CGOMSM condition reads `d = b c / σ_Y²`, not `d = b c`; two of the
+  matrices printed in Section VI violate it, and bilinear interpolation does not preserve it
+  inside the square; the expression of `B` after eq. (43) has a spurious inverse.
+- `tests/test_fuzzy_cgofmsm.py` (36 tests, the reference) and `tests/test_fuzzy_layer.py`
+  (25 tests, the public layer against the reference, and against the enumeration of all
+  regime paths in higher dimensions).
 - **`GSSFilter(mode="cgo")`** — exact filter of the models whose observation does not read
   the state (C = 0; `C(j, k) = 0` for every pair with a `PairGSSParams`), whatever the initial
   law. It carries the mean and covariance of `X_n` given `(r_n, y_{1:n})` and uses

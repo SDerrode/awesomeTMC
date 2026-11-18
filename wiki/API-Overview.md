@@ -8,6 +8,7 @@ Module map and the role of each component.
 awesometmc/
 ├── classes/        # Data containers (parameters, simulator, F matrix)
 ├── filter/         # Optimal filter (ngh_kf, gpb2 and cgo modes)
+├── fuzzy/          # Fuzzy switching models (regime in [0, 1])
 ├── learning/       # Supervised + semi-supervised estimators
 ├── models/         # Built-in BaseGSSModel subclasses
 ├── experiments/    # Paper-reproduction pipelines (§6, §7)
@@ -108,6 +109,49 @@ Note that `ngh_kf` issues a `RuntimeWarning` if the params do not
 satisfy AB — you can suppress this with `warnings.catch_warnings()`
 when you knowingly want to feed unconstrained params (as in the §7
 fairness comparison).
+
+## Fuzzy switching models
+
+### `awesometmc.fuzzy` (`awesometmc/fuzzy/`)
+
+Gaussian linear systems whose regime takes its values in `[0, 1]`: positive
+probability on the two "hard" regimes 0 and 1, a density in between (Bouyahia,
+Derrode, Pieczynski, *IEEE Trans. Fuzzy Systems*, 2020).
+
+```python
+from awesometmc.fuzzy import FMC1, FuzzyCGOMSM
+
+model = FuzzyCGOMSM(FMC1(alpha=0.07, eta=0.16, delta=0.05),
+                    means=(M0, M1), gammas=Gamma, q=1, s=1)   # Gamma[(i, j)]: 4 corners
+r, x, y = model.simulate(N=300, seed=0)     # regimes drawn in [0, 1], not on a grid
+disc = model.discretise(F=5)                # PairGSSParams on K = F + 2 regime values
+filt = disc.filter()                        # GSSFilter, exact mode "cgo"
+for yn in y:
+    res = filt.step(yn)
+    r_hat = disc.mpm(res.pi)                # MPM estimate of the jump
+```
+
+| Object | Role |
+|---|---|
+| `FuzzyMarkovLaw`, `FMC1`, `FMC2` | law of the regime chain: densities w.r.t. `δ₀ + δ₁ + Lebesgue`, sampler, discretisation, hardening |
+| `FuzzyGrid` | quadrature of the regime integrals: `midpoint(F)` or `custom(nodes, weights)` |
+| `FuzzyCGOMSM` | the model: means linear and covariances bilinear between four hard corners; `simulate`, `discretise`, `harden`, `known_jumps_filter` |
+| `FuzzyDiscretisation` | the model on a grid: `nodes`, `params` (a `PairGSSParams`), `filter()`, `mpm()`, `mean_jump()` |
+
+A fuzzy model is filtered through its discretisation, which is a hard switching
+model with pair-dependent parameters; the cost per step grows as `K²`.
+
+`interpolation="cgo"` (default) keeps the observation from reading the state for
+every pair of regimes, so the filter is exact for the discretised model. It
+expects hard corners that satisfy
+`Cov(Y₂, X₁) = Cov(Y₂, Y₁) Var(Y₁)⁻¹ Cov(Y₁, X₁)` (`corner_residual()`), warns when
+it has to correct them, and raises a `CovarianceError` when they are too far for a
+valid model to remain. `interpolation="bilinear"` is the letter of the paper; the
+discretised model then has `C ≠ 0` and is filtered approximately by mode `"gpb2"`.
+
+The scalar reference implementation of the paper and the reproduction of its
+Section VI are in `awesometmc/experiments/fuzzy_cgofmsm.py` and
+`fuzzy_cgofmsm_paper.py` (`--api public` runs the study through this interface).
 
 ## Learning
 

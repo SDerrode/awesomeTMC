@@ -24,7 +24,10 @@ Each experiment runs on two Gaussian models: the matrices as printed in the
 paper (``a3 != 0`` at two corners and inside the square), and the same matrices
 with the CGOMSM condition ``a3 = 0`` enforced after interpolation.
 
-CLI:  python -m awesometmc.experiments.fuzzy_cgofmsm_paper [--runs-scale 1.0] [--out DIR]
+``--api public`` runs the same study through the library interface
+``awesometmc.fuzzy`` (discretisation into a ``PairGSSParams``, ``GSSFilter``).
+
+CLI:  python -m awesometmc.experiments.fuzzy_cgofmsm_paper [--runs-scale 1.0] [--api public] [--out DIR]
 """
 
 from __future__ import annotations
@@ -32,6 +35,8 @@ from __future__ import annotations
 import argparse
 import csv
 import pathlib
+import warnings
+from types import SimpleNamespace
 
 import numpy as np
 
@@ -41,13 +46,14 @@ from awesometmc.experiments.fuzzy_cgofmsm import (
     FuzzyGaussianModel,
     FuzzyMarkovLaw,
     discretise,
-    fuzzy_filter,
     harden,
-    known_jumps_filter,
     mpm_jumps,
     paper_gaussian_model,
     simulate,
 )
+from awesometmc.experiments.fuzzy_cgofmsm import fuzzy_filter as _reference_filter
+from awesometmc.experiments.fuzzy_cgofmsm import known_jumps_filter as _reference_known_jumps
+from awesometmc.fuzzy import FuzzyCGOMSM, FuzzyDiscretisation
 
 __all__ = ["PAPER_FIG5", "PAPER_TABLE1", "fmc1_family", "fmc2_family", "mse_study", "main"]
 
@@ -105,6 +111,20 @@ def fmc2_family(p_hard: float) -> FMC2:
     return FMC2(corner * base.alpha / (base.alpha + base.beta), gamma, d)
 
 
+class _PublicModel:
+    """A discretised model of ``awesometmc.fuzzy`` behind the interface ``mse_study`` uses."""
+
+    def __init__(self, disc: FuzzyDiscretisation) -> None:
+        self.disc, self.nodes = disc, disc.nodes
+
+    def run(self, y):
+        filt = self.disc.filter()
+        out = [filt.step(yn) for yn in np.asarray(y, float).ravel()]
+        return SimpleNamespace(
+            E_x=np.array([o.E_x.item() for o in out]), post=np.array([o.pi for o in out])
+        )
+
+
 def mse_study(
     law: FuzzyMarkovLaw,
     gauss: FuzzyGaussianModel,
@@ -113,12 +133,45 @@ def mse_study(
     n_runs: int,
     seed: int = 0,
     likelihood: str = "paper",
+    api: str = "reference",
 ) -> list[dict]:
     """Mean squared errors of the fuzzy filter (one row per F), the hard filter and
-    the known-jumps filter, averaged over ``n_runs`` samples of length ``N``."""
+    the known-jumps filter, averaged over ``n_runs`` samples of length ``N``.
+
+    api
+        ``"reference"``: the scalar implementation of ``fuzzy_cgofmsm.py``.
+        ``"public"``: the library interface, ``awesometmc.fuzzy.FuzzyCGOMSM`` discretised
+        and filtered by ``GSSFilter`` (``likelihood`` is then ignored: the mode is
+        ``"cgo"`` when ``gauss.enforce_cgo``, ``"gpb2"`` otherwise). The samples are the
+        same in both cases, so the two columns of numbers are directly comparable.
+    """
+    if api not in ("reference", "public"):
+        raise ValueError("api must be 'reference' or 'public'")
     rng = np.random.default_rng(seed)
-    models = {F: discretise(law, gauss, F) for F in F_list}
-    hard = harden(law, gauss)
+    if api == "public":
+        with warnings.catch_warnings():
+            # the matrices printed in the paper violate the CGO identity at two corners;
+            # interpolation="cgo" corrects them, which is what enforce_cgo does
+            warnings.simplefilter("ignore", RuntimeWarning)
+            model = FuzzyCGOMSM(
+                law,
+                means=(gauss.M0, gauss.M1),
+                gammas=gauss.Gamma,
+                interpolation="cgo" if gauss.enforce_cgo else "bilinear",
+            )
+        models = {F: _PublicModel(model.discretise(F)) for F in F_list}
+        hard = _PublicModel(model.harden())
+
+        def fuzzy_filter(m, y, likelihood=None):  # noqa: F811 -- same call, other engine
+            return m.run(y)
+
+        def known_jumps_filter(_gauss, r, y):  # noqa: F811
+            e, v = model.known_jumps_filter(r, y)
+            return e[:, 0], v[:, 0, 0]
+    else:
+        fuzzy_filter, known_jumps_filter = _reference_filter, _reference_known_jumps
+        models = {F: discretise(law, gauss, F) for F in F_list}
+        hard = harden(law, gauss)
     acc = {F: [] for F in F_list}
     base = []
     for _ in range(n_runs):
@@ -165,22 +218,22 @@ def _variants():
     return {"printed": paper_gaussian_model(False), "cgo": paper_gaussian_model(True)}
 
 
-def run_figure5(n_runs: int = 50, seed: int = 0) -> list[dict]:
+def run_figure5(n_runs: int = 50, seed: int = 0, api: str = "reference") -> list[dict]:
     law = FMC1(0.07, 0.16, 0.05)
     out = []
     for name, gauss in _variants().items():
-        for row in mse_study(law, gauss, PAPER_FIG5["F"], N=300, n_runs=n_runs, seed=seed):
+        for row in mse_study(law, gauss, PAPER_FIG5["F"], N=300, n_runs=n_runs, seed=seed, api=api):
             out.append(dict(experiment="figure5", gaussian=name, law="FMC1", **row))
     return out
 
 
-def run_table1(n_runs: int = 20, seed: int = 0) -> list[dict]:
+def run_table1(n_runs: int = 20, seed: int = 0, api: str = "reference") -> list[dict]:
     out = []
     for law_name, family, F in (("FMC1", fmc1_family, 4), ("FMC2", fmc2_family, 10)):
         for pct, *_ in PAPER_TABLE1[law_name]:
             law = family(pct / 100.0)
             for name, gauss in _variants().items():
-                (row,) = mse_study(law, gauss, [F], N=1000, n_runs=n_runs, seed=seed)
+                (row,) = mse_study(law, gauss, [F], N=1000, n_runs=n_runs, seed=seed, api=api)
                 out.append(dict(experiment="table1", gaussian=name, law=law_name, pct=pct, **row))
     return out
 
@@ -229,11 +282,17 @@ def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(description="Reproduce Section VI of Bouyahia et al. (2020).")
     ap.add_argument("--runs-scale", type=float, default=1.0, help="multiply the numbers of runs")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument(
+        "--api",
+        choices=("reference", "public"),
+        default="reference",
+        help="scalar reference implementation, or the library interface awesometmc.fuzzy",
+    )
     ap.add_argument("--out", type=pathlib.Path, default=pathlib.Path("results/fuzzy_cgofmsm"))
     args = ap.parse_args(argv)
-    fig5 = run_figure5(max(2, round(50 * args.runs_scale)), args.seed)
+    fig5 = run_figure5(max(2, round(50 * args.runs_scale)), args.seed, args.api)
     _print_figure5(fig5)
-    tab1 = run_table1(max(2, round(20 * args.runs_scale)), args.seed)
+    tab1 = run_table1(max(2, round(20 * args.runs_scale)), args.seed, args.api)
     _print_table1(tab1)
     args.out.mkdir(parents=True, exist_ok=True)
     for name, rows in (("figure5", fig5), ("table1", tab1)):
