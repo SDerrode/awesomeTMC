@@ -34,6 +34,30 @@ Mutable in tests, immutable in normal use. Build instances with
 `from_model`; it exposes `K`, `q`, `s`, the `f_matrix`/`noise_cov`
 blocks and `stationary_distribution()`.
 
+### `PairGSSParams` (`awesometmc/classes/PairGSSParams.py`)
+
+Parameters indexed by the regime **pair** `(r_n, r_{n+1})` instead of the arrival
+regime: `F(j, k)`, `Sigma_W(j, k)`, `b(j, k)` and `G(j, k)` describe the transition
+from regime `j` to regime `k`. This is the setting of the pair-dependent CGOMSM of
+Abbassi et al. (2015), and of a fuzzy switching model discretised on a grid.
+
+```python
+from awesometmc.classes import PairGSSParams
+
+pair = params.as_pair()                    # broadcast an arrival-indexed GSSParams
+pair = PairGSSParams(K=2, q=1, s=1, P=P, F=F, Sigma_W=SW, pi0=None,
+                     mu_z0_list=mu0, Sigma_z0_list=S0)   # F, SW of shape (K, K, 2, 2)
+
+sim  = GSSSimulator(pair, N=1000, seed=42)
+filt = GSSFilter(pair)                     # mode "gpb2"; exact when pair.is_cgo()
+```
+
+Accepted by `GSSSimulator` and by `GSSFilter` in mode `"gpb2"` only. Parameters
+broadcast with `as_pair()` reproduce the arrival-indexed trajectory and filter
+output bit for bit. `to_arrival()` converts back when nothing depends on the
+departure regime; `augmented()` returns the same model as a `GSSParams` on the
+`K²` regimes `(r_{n-1}, r_n)`, for the tools that take arrival-indexed parameters.
+
 ### `GSSSimulator` (`awesometmc/classes/GSSSimulator.py`)
 
 Iterator: yields `(n, r, x, y)` tuples one step at a time.

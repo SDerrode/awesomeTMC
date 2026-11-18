@@ -60,12 +60,22 @@ Modes
     :func:`awesometmc.experiments.reference_filters.gpb2_filter`, against which it is
     validated to machine precision.
 
+    It is also the only mode that accepts parameters indexed by the regime pair
+    (r_n, r_{n+1}) (:class:`~awesometmc.classes.PairGSSParams.PairGSSParams`): the
+    expansion to the K² pairs then reads F(j, k), b(j, k), G(j, k) and Σ_W(j, k)
+    instead of the arrival-indexed F(k), b(k), G(k), Σ_W(k), at the same cost. On
+    such a model it is exact when C(j, k) = 0 for every pair (the pair-dependent
+    CGOMSM of Abbassi et al., 2015; ``PairGSSParams.is_cgo()``), whatever the
+    initial law. The exactness region stated above for C ≠ 0 was established for
+    arrival-indexed parameters only.
+
 Default mode (``mode=None``)
 ---------------------------
 When ``mode`` is left ``None`` the filter dispatches on the *type* of
 ``params``: a :class:`~awesometmc.classes.GSSParams.NGHMSMParams` (a validated
 CGOMSM2, where AB holds by construction) defaults to ``"ngh_kf"``; any other
-:class:`GSSParams` defaults to ``"gpb2"``. Pass ``mode`` explicitly to override.
+:class:`GSSParams`, and any :class:`PairGSSParams`, defaults to ``"gpb2"``. Pass
+``mode`` explicitly to override; ``"ngh_kf"`` rejects a :class:`PairGSSParams`.
 
 Joseph form (optional, ngh_kf only)
 -------------------------------------
@@ -101,6 +111,7 @@ from scipy.stats import multivariate_normal
 
 from awesometmc.classes.GSSParams import GSSParams
 from awesometmc.classes.GSSSimulator import GSSSimulator
+from awesometmc.classes.PairGSSParams import PairGSSParams
 from awesometmc.utils.input_signal import make_input
 
 __all__ = ["GSSFilter", "FilterResult"]
@@ -169,8 +180,9 @@ class GSSFilter:
 
     Parameters
     ----------
-    params : GSSParams
-        Validated model parameters.
+    params : GSSParams or PairGSSParams
+        Validated model parameters, indexed by the arrival regime or by the
+        regime pair (the latter in mode ``"gpb2"`` only).
     joseph : bool, default False
         (Only used when ``mode="ngh_kf"``.) If True, the mode-conditional
         posterior covariance uses the Joseph form (paper App. E) instead of
@@ -218,7 +230,7 @@ class GSSFilter:
 
     def __init__(
         self,
-        params: GSSParams,
+        params: GSSParams | PairGSSParams,
         joseph: bool = False,
         mode: str | None = None,
     ) -> None:
@@ -231,6 +243,11 @@ class GSSFilter:
             mode = "ngh_kf" if isinstance(params, NGHMSMParams) else "gpb2"
         if mode not in FILTER_MODES:
             raise ValueError(f"Unknown mode {mode!r}. Expected one of: {FILTER_MODES}.")
+        if mode == "ngh_kf" and isinstance(params, PairGSSParams):
+            raise ValueError(
+                "mode='ngh_kf' needs arrival-indexed parameters (GSSParams). Use mode='gpb2', "
+                "or params.to_arrival() if the parameters do not depend on the departure regime."
+            )
         self._p = params
         self._joseph = bool(joseph)
         self._mode = mode
@@ -777,16 +794,32 @@ class GSSFilter:
     # ------------------------------------------------------------------
 
     def _precompute_gpb2(self) -> None:
-        """Cache the model arrays GPB2 needs, plus the stated initial law."""
+        """Cache the model arrays GPB2 needs, plus the stated initial law.
+
+        The transition arrays are indexed by the regime pair, ``self._F[j][k]`` being
+        the matrix of the transition from ``j`` to ``k``. Arrival-indexed parameters
+        fill every row ``j`` with the same per-arrival arrays.
+        """
         p = self._p
         K, q, s = p.K, p.q, p.s
         dim = q + s
-        self._F = [np.asarray(p.f_matrix.F(k), dtype=float) for k in range(K)]
-        self._b = [np.asarray(p.b(k), dtype=float).reshape(dim, 1) for k in range(K)]
-        self._SW = [np.asarray(p.noise_cov.Sigma_W(k), dtype=float) for k in range(K)]
-        self._mu_z0 = [np.asarray(p.mu_z0(k), dtype=float).reshape(dim, 1) for k in range(K)]
-        self._Sigma_z0 = [np.asarray(p.Sigma_z0(k), dtype=float) for k in range(K)]
-        self._G = [np.asarray(p.G(k), dtype=float) for k in range(K)] if p.p > 0 else None
+        rng = range(K)
+        if isinstance(p, PairGSSParams):
+            self._F = [[np.asarray(p.F(j, k), dtype=float) for k in rng] for j in rng]
+            self._b = [
+                [np.asarray(p.b(j, k), dtype=float).reshape(dim, 1) for k in rng] for j in rng
+            ]
+            self._SW = [[np.asarray(p.Sigma_W(j, k), dtype=float) for k in rng] for j in rng]
+            G = [[np.asarray(p.G(j, k), dtype=float) for k in rng] for j in rng]
+        else:
+            F = [np.asarray(p.f_matrix.F(k), dtype=float) for k in rng]
+            b = [np.asarray(p.b(k), dtype=float).reshape(dim, 1) for k in rng]
+            SW = [np.asarray(p.noise_cov.Sigma_W(k), dtype=float) for k in rng]
+            Gk = [np.asarray(p.G(k), dtype=float) for k in rng]
+            self._F, self._b, self._SW, G = [F] * K, [b] * K, [SW] * K, [Gk] * K
+        self._G = G if p.p > 0 else None
+        self._mu_z0 = [np.asarray(p.mu_z0(k), dtype=float).reshape(dim, 1) for k in rng]
+        self._Sigma_z0 = [np.asarray(p.Sigma_z0(k), dtype=float) for k in rng]
         self._H_obs = np.hstack([np.zeros((s, q)), np.eye(s)])
         pi0 = p.pi0
         self._pi_start = (
@@ -846,10 +879,11 @@ class GSSFilter:
         y_pred = np.zeros_like(y_new)
         for j in range(K):
             for k in range(K):
-                z_pred = self._F[k] @ self._z[j] + self._b[k]
+                F_jk = self._F[j][k]
+                z_pred = F_jk @ self._z[j] + self._b[j][k]
                 if has_u:
-                    z_pred = z_pred + self._G[k] @ u_prev
-                P_pred = _sym(self._F[k] @ self._Pc[j] @ self._F[k].T + self._SW[k])
+                    z_pred = z_pred + self._G[j][k] @ u_prev
+                P_pred = _sym(F_jk @ self._Pc[j] @ F_jk.T + self._SW[j][k])
                 zk, Pk, lk = self._kalman_y_update(z_pred, P_pred)
                 z_pair[(j, k)], P_pair[(j, k)] = zk, Pk
                 w_jk = self._pi[j] * p.P[j, k]
@@ -1004,7 +1038,7 @@ class GSSFilter:
     # ------------------------------------------------------------------
 
     @property
-    def params(self) -> GSSParams:
+    def params(self) -> GSSParams | PairGSSParams:
         """Model parameters."""
         return self._p
 
