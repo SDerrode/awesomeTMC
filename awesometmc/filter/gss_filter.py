@@ -1028,6 +1028,22 @@ class GSSFilter:
             n=self._n, E_x=E_x, E_xx=_sym(E_xx), pi=pi, innovation=innov, log_lik=log_lik
         )
 
+    def regime_summaries(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Mode ``"cgo"`` only: the per-regime filtered summaries after the last step,
+
+            pi (K,)        p(r_n = k | y_{1:n})
+            m_x (K, q)     E[X_n | r_n = k, y_{1:n}]
+            V_x (K, q, q)  Var(X_n | r_n = k, y_{1:n})
+
+        (copies). They are what the exact smoother of the family ``C = 0`` re-weights,
+        see :func:`awesometmc.filter.reweight_smoother`.
+        """
+        if self._mode != "cgo":
+            raise RuntimeError('regime_summaries() is available in mode "cgo" only.')
+        if self._m_x is None:
+            raise RuntimeError("regime_summaries() needs at least one call to step().")
+        return self._pi.copy(), self._m_x.copy(), self._V_x.copy()
+
     def _init_step_cgo(self, y1: np.ndarray) -> FilterResult:
         """Initial step: condition the stated initial law p(Z_0 | r_0) on y_1."""
         dev = y1.ravel()[None, :] - self._c0_my  # (K, s)

@@ -49,6 +49,14 @@ smoothed γ fails under AB (the backward ξ-correction is the essential part,
 not a refinement), and the constant-gain read-out has no meaning under C≡0.
 Each smoother is exact exactly on its family — the same domains as filtering.
 
+Pair-indexed models. ``regime_smoother(..., kernel="c0")``,
+``chain_log_likelihood(..., kernel="c0")`` and ``reweight_smoother`` also accept a
+:class:`~awesometmc.classes.PairGSSParams`, whose parameters depend on the pair
+``(r_n, r_{n+1})``: when ``C(j, k) = 0`` for every pair, (R, Y) is still Markov, with
+kernel ``P[j,k] N(y_{n+1}; D(j,k) y_n + bY(j,k), Σ_V(j,k))``, and reweighting is still
+exact. The forward pass is then :class:`~awesometmc.filter.GSSFilter` in mode ``"cgo"``.
+The AB kernels (``"ab"``, ``"lag1"``) are defined for arrival-indexed models only.
+
 All smoothers are batch functions on ``(params, ys)`` mirroring
 :mod:`awesometmc.experiments.reference_filters`; the observation model is the exact
 read-out ``Y_n = H Z_n`` with ``H = [0, I_s]``. The first time slice uses the
@@ -59,6 +67,8 @@ initial per-regime law (no stationarity assumption). Exogenous inputs
 from __future__ import annotations
 
 import numpy as np
+
+from awesometmc.classes.PairGSSParams import PairGSSParams
 
 __all__ = [
     "regime_smoother",
@@ -222,6 +232,8 @@ def _forward_backward(la, log_ker):
 def _log_kernel_c0(params, ys_):
     """{C≡0} kernel: Q0[n,j,k] = log P[j,k] + log N(y_{n+1}; D_k y_n + bY_k, Σ_V(k)).
     The Y-chain is Markov on its own — no state read-out enters."""
+    if isinstance(params, PairGSSParams):
+        return _log_kernel_c0_pair(params, ys_)
     K, s = params.K, params.s
     N = ys_.shape[0]
     _, _, _, D, SV, _, bY = _blocks(params)
@@ -236,6 +248,21 @@ def _log_kernel_c0(params, ys_):
             for j in range(K):
                 log_ker[n, j, k] = logP[j, k] + lg
     return log_ker
+
+
+def _log_kernel_c0_pair(params, ys_):
+    """{C≡0} kernel of a pair-indexed model, vectorised over time and pairs:
+    Q0[n,j,k] = log P[j,k] + log N(y_{n+1}; D(j,k) y_n + bY(j,k), Σ_V(j,k))."""
+    K, q, s = params.K, params.q, params.s
+    pairs = [(j, k) for j in range(K) for k in range(K)]
+    D = np.array([params.F(j, k)[q:, q:] for j, k in pairs]).reshape(K, K, s, s)
+    bY = np.array([np.asarray(params.b(j, k)).reshape(-1)[q:] for j, k in pairs]).reshape(K, K, s)
+    SV = np.array([params.Sigma_W(j, k)[q:, q:] for j, k in pairs]).reshape(K, K, s, s)
+    chol = np.linalg.cholesky(SV)
+    log_norm = -0.5 * s * _LOG_2PI - np.log(np.diagonal(chol, axis1=-2, axis2=-1)).sum(axis=-1)
+    dev = ys_[1:, None, None, :] - (np.einsum("jkab,nb->njka", D, ys_[:-1]) + bY)
+    white = np.linalg.solve(chol[None], dev[..., None])[..., 0]
+    return np.log(params.P + 1e-300) + log_norm - 0.5 * np.sum(white**2, axis=-1)
 
 
 def _readout_ab(params, ys_, m0):
@@ -368,6 +395,11 @@ def _build_chain(params, ys_, kernel):
     family kernel (``"ab"``, ``"c0"`` or ``"lag1"``)."""
     if kernel not in SMOOTHER_KERNELS:
         raise ValueError(f"unknown kernel {kernel!r}; expected one of {SMOOTHER_KERNELS}")
+    if isinstance(params, PairGSSParams) and kernel != "c0":
+        raise ValueError(
+            f"kernel {kernel!r} is defined for arrival-indexed models only; a PairGSSParams "
+            f'is smoothed with kernel="c0" (exact when C(j, k) = 0 for every pair).'
+        )
     m0, P0, la = _first_slice(params, ys_)
     if ys_.shape[0] == 1:
         return la, np.zeros((0, params.K, params.K))
@@ -450,6 +482,8 @@ def reweight_smoother(params, ys):
 
     Returns ``(E_x (N,q), Var_x (N,q,q), gamma (N,K), log_lik)``.
     """
+    if isinstance(params, PairGSSParams):
+        return _reweight_smoother_pair(params, ys)
     K, q, s = params.K, params.q, params.s
     dim = q + s
     ys_ = np.asarray(ys, dtype=float).reshape(-1, s)
@@ -505,12 +539,34 @@ def reweight_smoother(params, ys):
         log_lik = _logsumexp(la)
     else:
         gamma, _, log_lik = _forward_backward(la, _log_kernel_c0(params, ys_))
+    E_x, Var_x = _reweight(gamma, xs, Pxs)
+    return E_x, Var_x, gamma, log_lik
+
+
+def _reweight(gamma, xs, Pxs):
+    """Moments of the mixture Σ_k γ_n(k) N(xs[n,k], Pxs[n,k]): (E_x (N,q), Var_x (N,q,q))."""
     E_x = np.einsum("nk,nkq->nq", gamma, xs)
-    Var_x = np.zeros((N, q, q))
+    dev = xs - E_x[:, None, :]
+    Var_x = np.einsum("nk,nkab->nab", gamma, Pxs + dev[..., :, None] * dev[..., None, :])
+    return E_x, Var_x
+
+
+def _reweight_smoother_pair(params, ys):
+    """``reweight_smoother`` for a pair-indexed model: forward pass by ``GSSFilter`` in
+    mode ``"cgo"``, backward pass on the pair kernel of (R, Y)."""
+    from awesometmc.filter.gss_filter import GSSFilter
+
+    K, q, s = params.K, params.q, params.s
+    ys_ = np.asarray(ys, dtype=float).reshape(-1, s)
+    N = ys_.shape[0]
+    filt = GSSFilter(params, mode="cgo")
+    xs = np.zeros((N, K, q))
+    Pxs = np.zeros((N, K, q, q))
     for n in range(N):
-        for k in range(K):
-            d = xs[n, k] - E_x[n]
-            Var_x[n] += gamma[n, k] * (Pxs[n, k] + np.outer(d, d))
+        filt.step(ys_[n])
+        _, xs[n], Pxs[n] = filt.regime_summaries()
+    gamma, _, log_lik = regime_smoother(params, ys_, kernel="c0")
+    E_x, Var_x = _reweight(gamma, xs, Pxs)
     return E_x, Var_x, gamma, log_lik
 
 

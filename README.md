@@ -280,9 +280,10 @@ for y in observations:          # y shape (s,) or (s, 1)
 sim_path, df = filt.run(N=1000, seed=42, output_dir="data/simulated")
 ```
 
-> **Worked examples:** runnable filtering notebooks are in
+> **Worked examples:** runnable notebooks are in
 > [`notebooks/`](notebooks/) — a quickstart (`01_filtering_quickstart.ipynb`) and
-> a filter comparison (`02_filters_comparison.ipynb`).
+> a filter comparison (`02_filters_comparison.ipynb`), and fuzzy switching models
+> (`03_fuzzy_switches.ipynb`).
 
 ### AB constraint API
 

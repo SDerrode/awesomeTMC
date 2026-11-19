@@ -96,6 +96,21 @@ class FuzzyDiscretisation:
         observation does not read the state, ``"gpb2"`` otherwise."""
         return GSSFilter(self.params, mode=mode)
 
+    def smoother(self, ys) -> tuple[np.ndarray, np.ndarray, np.ndarray, float]:
+        """Fixed-interval smoother of the discretised model, by
+        :func:`awesometmc.filter.reweight_smoother`.
+
+        Returns ``(E_x (N, q), Var_x (N, q, q), gamma (N, K), log_lik)``: the moments of
+        ``X_n`` and the law of the regime on the nodes given **all** the observations
+        ``y_1, ..., y_N``, and ``log p(y_1, ..., y_N)``. Exact when the observation does
+        not read the state (``interpolation="cgo"``); with ``"bilinear"`` it is the same
+        recursion applied as an approximation, and a ``RuntimeWarning`` says so.
+        ``mpm(gamma)`` and ``mean_jump(gamma)`` give the smoothed jumps.
+        """
+        from awesometmc.filter import reweight_smoother
+
+        return reweight_smoother(self.params, ys)
+
     def mpm(self, pi) -> np.ndarray:
         """MPM estimate of the jump(s) from regime posterior(s) ``pi`` on the nodes
         ([BDP20], Section VI). Returns an array of shape (N,), or (1,) for one posterior."""

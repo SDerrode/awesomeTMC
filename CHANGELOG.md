@@ -8,6 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Smoothing of pair-indexed models.** `reweight_smoother`, `regime_smoother(kernel="c0")`
+  and `chain_log_likelihood(kernel="c0")` accept a `PairGSSParams`: when `C(j, k) = 0` for
+  every pair, (R, Y) is Markov with kernel `P[j,k] N(y'; D(j,k) y + bY(j,k), Σ_V(j,k))` and
+  the smoothed state law is the filtered per-regime summaries re-weighted by the smoothed
+  regime probabilities. The forward pass is `GSSFilter` in mode `"cgo"`, whose summaries are
+  now public (`GSSFilter.regime_summaries()`); the kernel is vectorised over time and pairs.
+  Checked against the arrival-indexed smoother on the augmented regime and against the
+  scalar reference of the 2020 paper. The AB kernels are refused for pair-indexed models.
+- **`FuzzyDiscretisation.smoother(ys)`** — fixed-interval smoother of a fuzzy model, exact
+  with `interpolation="cgo"`. On the model of Section VI of the paper (F = 5), smoothing
+  lowers the error on the jumps by about a quarter and the error on the state by about 2 %.
+- **`awesometmc/fuzzy/estimation.py`** — supervised estimation of a fuzzy model from a
+  sample whose regimes are known ([BDP20], Section VII): `fit_law` (FMC1 by maximum
+  likelihood or closed-form moments, FMC2), `fit_gaussian` (`method="regression"`: least
+  squares on all the samples, fuzzy ones included; `method="hard"`: the empirical estimators
+  of the paper over hard samples and hard pairs) and `fit_supervised`, which returns a
+  `FuzzyCGOMSM`. Corners are made to satisfy the `C = 0` identity and kept positive
+  definite, both corrections being reported. With a pseudo ground truth where regimes move
+  from 0 to 1 through fuzzy values, as in Section VII, the hard pairs (0, 1) and (1, 0)
+  never occur: `method="hard"` then fails, the regression does not.
+- **`notebooks/03_fuzzy_switches.ipynb`** — worked example of the fuzzy layer: model,
+  simulation, filtering, smoothing, comparison with the hardened model, estimation.
 - **`awesometmc/fuzzy/`** — Gaussian linear systems with fuzzy switches (Bouyahia, Derrode,
   Pieczynski, IEEE TFS 2020): the regime takes its values in `[0, 1]`, with positive
   probability on the hard regimes 0 and 1 and a density in between. `FuzzyMarkovLaw`, `FMC1`,
