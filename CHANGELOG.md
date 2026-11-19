@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.4.0] — 2026-11-19
+
 ### Added
 - **Smoothing of pair-indexed models.** `reweight_smoother`, `regime_smoother(kernel="c0")`
   and `chain_log_likelihood(kernel="c0")` accept a `PairGSSParams`: when `C(j, k) = 0` for
