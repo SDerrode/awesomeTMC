@@ -3,12 +3,12 @@
 awesometmc/experiments/run_real_data.py
 =================================
 Real-data experiments on the NOAA ENSO dataset (§7 of the archived V1
-draft, docs/attic/semi-supervised_EM/ — local archive, not tracked by git).
+draft, manuscrits/archives/semi-supervised_EM/ — local archive, not tracked by git).
 
 INVALIDATED STUDY — kept as a witness. The ONI-derived regime labels leaked
 future information (look-ahead; see commit 6491efc and the attic README).
 The tables below feed no current paper; the witness copies produced for the
-archived draft live in docs/attic/semi-supervised_EM/figures/.
+archived draft live in manuscrits/archives/semi-supervised_EM/figures/.
 
 Inputs
 ------
@@ -37,7 +37,7 @@ Outputs
         e2_table.json             filter comparison
         e3_table.json             EM variant comparison
         regime_trace.csv          test-period regime probs and predictions
-    docs/attic/semi-supervised_EM/figures/generated/      (--fig-dir)
+    manuscrits/archives/semi-supervised_EM/figures/generated/      (--fig-dir)
         tab_enso_ab_test.tex / tab_enso_filter.tex / tab_enso_em.tex
 
 CLI
@@ -84,7 +84,7 @@ DEFAULT_OUT = ROOT / "results/enso"
 # expects the LaTeX tables in figures/generated/ next to it, same convention
 # as make_figures.py (the witness copies sit one level up, in figures/).
 # The attic is local and not tracked by git.
-DEFAULT_FIG_DIR = ROOT / "docs" / "attic" / "semi-supervised_EM" / "figures" / "generated"
+DEFAULT_FIG_DIR = ROOT / "manuscrits" / "archives" / "semi-supervised_EM" / "figures" / "generated"
 TRAIN_END = pd.Timestamp("2010-12-01")
 REGIME_NAMES = ("La Niña", "Neutral", "El Niño")
 

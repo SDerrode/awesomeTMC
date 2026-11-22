@@ -3,7 +3,7 @@
 awesometmc/experiments/run_simulations.py
 ===================================
 Monte-Carlo filter benchmark (§6.2 of the archived V1 draft; the protocol
-reference is docs/attic/semi-supervised_EM/06_experiments.tex — local
+reference is manuscrits/archives/semi-supervised_EM/06_experiments.tex — local
 archive, not tracked by git).
 
 Protocol

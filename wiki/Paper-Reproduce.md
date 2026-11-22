@@ -141,10 +141,10 @@ as future work, not a solved one.
 ## Recompiling the paper
 
 The paper sources are *not* in the public repo (gitignored). With a local copy in
-`docs/NGH-MSM_V2/`:
+`manuscrits/papiers/CGOMSM2/`:
 
 ```bash
-cd docs/NGH-MSM_V2
+cd manuscrits/papiers/CGOMSM2
 pdflatex main && biber main && pdflatex main && pdflatex main
 ```
 

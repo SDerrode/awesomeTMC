@@ -3,13 +3,13 @@
 awesometmc/experiments/make_figures_real.py
 =====================================
 Generate figures for the real-data ENSO experiment (§7 of the archived V1
-draft, docs/attic/semi-supervised_EM/ — local archive, not tracked by git).
+draft, manuscrits/archives/semi-supervised_EM/ — local archive, not tracked by git).
 
 INVALIDATED STUDY — kept as a witness. The ONI-derived regime labels leaked
 future information (look-ahead; see commit 6491efc and the attic README).
 The input files below were purged from the repository (commit c535680), so
 the script no longer runs as-is; the figures it once produced are archived
-in docs/attic/semi-supervised_EM/figures/.
+in manuscrits/archives/semi-supervised_EM/figures/.
 
 Reads
 -----
@@ -18,12 +18,12 @@ Reads
 
 Writes
 ------
-    docs/attic/semi-supervised_EM/figures/generated/fig_enso_overview.pdf
+    manuscrits/archives/semi-supervised_EM/figures/generated/fig_enso_overview.pdf
         Two-panel: top  = standardized Niño 3.4 over full period with regime
                           shading (La Niña / Neutral / El Niño from ONI).
                    bot  = train/test split marker + standardized Niño 1+2.
 
-    docs/attic/semi-supervised_EM/figures/generated/fig_enso_regime_trace.pdf
+    manuscrits/archives/semi-supervised_EM/figures/generated/fig_enso_regime_trace.pdf
         Three-panel for the test period:
           (a) Niño 3.4 (Y) and Niño 1+2 (X) standardized
           (b) Filter posterior π_n(El Niño) and π_n(La Niña) for variant V0
@@ -51,7 +51,7 @@ TRACE_CSV = REPO_ROOT / "results" / "enso" / "regime_trace.csv"
 # expects the ENSO figures in figures/generated/ next to it, same convention
 # as make_figures.py (the witness copies sit one level up, in figures/).
 # The attic is local and not tracked by git.
-FIG_DIR = REPO_ROOT / "docs" / "attic" / "semi-supervised_EM" / "figures" / "generated"
+FIG_DIR = REPO_ROOT / "manuscrits" / "archives" / "semi-supervised_EM" / "figures" / "generated"
 
 REGIME_COL = {0: "#3b8ec2", 1: "#cccccc", 2: "#d62728"}  # blue / grey / red
 REGIME_NM = {0: "La Niña", 1: "Neutral", 2: "El Niño"}

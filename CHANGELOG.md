@@ -117,6 +117,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`python -m awesometmc.experiments.imm_cgo_projection [--seeds 200] [--out DIR]`).
 
 ### Changed
+- **The local, untracked folder of papers and reports is renamed `docs/` → `manuscrits/`** and
+  split into `papiers/`, `rapports/`, `notes/`, `sources/` and `archives/`. The inner folder
+  names are unchanged (`docs/rapport_experimental` is now
+  `manuscrits/rapports/rapport_experimental`, …), except the folder of the TAC paper, whose
+  name no longer matched the vocabulary of the paper: `docs/NGH-MSM_V2` is now
+  `manuscrits/papiers/CGOMSM2`. The
+  default output paths of `study.py`, `make_real_structure_fig.py`,
+  `make_vehicle_consigne_fig.py`, `make_paper_figures.py`, `make_cns_figures.py` and
+  `imm_cgo_projection.py`, the docstrings, the README, the wiki and the notebooks follow;
+  `.gitignore` now ignores `manuscrits/` (and still `docs/`). Entries below keep the paths of their
+  release.
 - `.zenodo.json`: description and keywords aligned with `codemeta.json` and the HAL record
   (hal-05774496): the former text still described the 2.x "AB-constrained GSS framework" and
   the vehicle and ENSO studies. Takes effect on the Zenodo record of the next release.

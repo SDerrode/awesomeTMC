@@ -481,7 +481,7 @@ of the K<sup>N</sup> regime paths.
 ```bash
 # from the repo root, inside the project venv
 python -m awesometmc.experiments.cns_exactness      # experiments E1–E11, printed as the paper's tables
-python -m awesometmc.experiments.make_cns_figures   # the two figures, written to docs/CNS-exactness/figures/
+python -m awesometmc.experiments.make_cns_figures   # the two figures, written to manuscrits/papiers/CNS-exactness/figures/
 ```
 
 `cns_exactness.py` runs eleven experiments (N = 10 time steps, 100 seeds off the

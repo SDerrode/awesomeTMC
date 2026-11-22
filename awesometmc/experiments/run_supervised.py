@@ -3,7 +3,7 @@
 awesometmc/experiments/run_supervised.py
 ==================================
 Monte-Carlo evaluation of the supervised OLS estimator (§6.3 of the archived
-V1 draft, docs/attic/semi-supervised_EM/ — local archive, not tracked by git).
+V1 draft, manuscrits/archives/semi-supervised_EM/ — local archive, not tracked by git).
 
 Protocol (model M1, 100 runs)
 ------------------------------

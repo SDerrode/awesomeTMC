@@ -3,7 +3,7 @@
 awesometmc/experiments/models_paper.py
 ================================
 Reference GSS models used in the simulation study (§6 of the archived V1
-draft, docs/attic/semi-supervised_EM/ — local archive, not tracked by git).
+draft, manuscrits/archives/semi-supervised_EM/ — local archive, not tracked by git).
 The § numbers below refer to that draft.
 
 Models

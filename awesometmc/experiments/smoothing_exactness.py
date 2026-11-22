@@ -1,7 +1,7 @@
 """Machine-precision checks of the exact fixed-interval smoothers (smoothing paper).
 
 Thirteen experiments back the numbers quoted in the exact-smoothing paper
-(docs/exact-smoothing):
+(manuscrits/papiers/exact-smoothing):
 
 S1  Smoothed regime posterior, exact and O(N K^2) on both families: the HMM
     forward-backward on (R,Y) -- kernel Q0 on {C==0}, kernel Q on AB --
