@@ -3,7 +3,7 @@
 awesometmc/filter/gss_smoother.py
 ==========================
 Exact fixed-interval smoothers for the GSS model on the exactness domains
-(the smoothing companion of the filtering CNS paper, docs/CNS-exactness).
+(the smoothing companion of the filtering CNS paper, manuscrits/papiers/CNS-exactness).
 
 On the two uniform families where finite-dimensional *filtering* is exact —
 ``{C≡0}`` (CGOMSM1) and the AB constraint (CGOMSM2), plus the intermediate

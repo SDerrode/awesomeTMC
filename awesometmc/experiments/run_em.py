@@ -3,7 +3,7 @@
 awesometmc/experiments/run_em.py
 ==========================
 Monte-Carlo evaluation of the semi-supervised Baum-Welch EM estimator
-(§6.4 of the archived V1 draft, docs/attic/semi-supervised_EM/ — local
+(§6.4 of the archived V1 draft, manuscrits/archives/semi-supervised_EM/ — local
 archive, not tracked by git).
 
 Two EM variants are compared

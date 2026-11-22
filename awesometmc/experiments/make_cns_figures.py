@@ -1,4 +1,4 @@
-"""Figures for the exactness-domains paper (docs/CNS-exactness).
+"""Figures for the exactness-domains paper (manuscrits/papiers/CNS-exactness).
 
 F1  "Three conditions, three filters" (3 panels, double column). Each panel
     violates one elementary condition and shows which filter leaves the exact
@@ -44,7 +44,9 @@ from awesometmc.experiments.cns_exactness import (
     off_union_model,
 )
 
-OUTDIR = Path(__file__).resolve().parents[2] / "docs" / "CNS-exactness" / "figures"
+OUTDIR = (
+    Path(__file__).resolve().parents[2] / "manuscrits" / "papiers" / "CNS-exactness" / "figures"
+)
 N_SEEDS_FIG = 25  # medians over this many runs per point
 FLOOR = 1e-16  # plotting floor, below which "machine precision"
 

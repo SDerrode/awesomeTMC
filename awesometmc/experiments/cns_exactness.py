@@ -1,7 +1,7 @@
 """Machine-precision checks of the IMM/GPB2 exactness domains (TSP paper).
 
 Twelve experiments back the numbers quoted in the exactness-domains paper
-(docs/CNS-exactness):
+(manuscrits/papiers/CNS-exactness):
 
 E1  IMM realizes the CGOMSM1 exact filter: on a genuine CGOMSM1 (C=0, state
     memory A_r != 0, regimes identifiable), IMM and GPB2 match the exact

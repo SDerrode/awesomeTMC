@@ -5,7 +5,7 @@ Monte-Carlo simulation study (§6.2–6.4 of the archived V1 draft).
 
 The V1 draft this study was written for has been deleted; its useful extracts
 (including ``06_experiments.tex``, the §6.2–6.4 protocol reference) are archived
-in ``docs/attic/semi-supervised_EM/`` (local archive, not tracked by git — see
+in ``manuscrits/archives/semi-supervised_EM/`` (local archive, not tracked by git — see
 its README.md). All § numbers below refer to that document.
 
 Sub-modules
@@ -33,7 +33,7 @@ run_em           — §6.4: semi-supervised Baum-Welch EM MC study (PH vs GEM):
                                              em_ll_history.csv
                    CLI: python -m awesometmc.experiments.run_em [--help]
 make_figures     — post-processing: reads all *_results.csv files and writes,
-                   by default into docs/attic/semi-supervised_EM/figures/generated/
+                   by default into manuscrits/archives/semi-supervised_EM/figures/generated/
                    (where the archived 06_experiments.tex \\input's them):
                      fig_rmse_vs_N.pdf        (§6.2)
                      fig_supervised_rmse.pdf  (§6.3)
@@ -45,7 +45,7 @@ make_figures     — post-processing: reads all *_results.csv files and writes,
                      tab_em_restarts.tex      (§6.4)
                    CLI: python -m awesometmc.experiments.make_figures [--help]
 fill_placeholders — final step: fills \\ph{...} placeholders in the archived
-                     docs/attic/semi-supervised_EM/06_experiments.tex with
+                     manuscrits/archives/semi-supervised_EM/06_experiments.tex with
                      numerical values computed from the *_results.csv files.
                      (The archived copy is already filled; only the figure
                      fallback captions remain as \\ph{}.)

@@ -6,14 +6,14 @@ Generate the V1-draft figures and LaTeX table fragments from the Monte-Carlo
 results produced by :mod:`awesometmc.experiments.run_simulations`.
 
 The § numbers below refer to the archived V1 draft in
-``docs/attic/semi-supervised_EM/`` (local archive, not tracked by git). Its
+``manuscrits/archives/semi-supervised_EM/`` (local archive, not tracked by git). Its
 ``06_experiments.tex`` \\input's the generated tables from
 ``figures/generated/`` relative to itself, hence the default output directory
 below (override with ``--fig-dir``); it is created if absent.
 
 Reads  ``data/experiments/mc_results.csv``
-Writes ``docs/attic/semi-supervised_EM/figures/generated/*.pdf``  (one per figure)
-       ``docs/attic/semi-supervised_EM/figures/generated/*.tex``  (table rows for \\input{})
+Writes ``manuscrits/archives/semi-supervised_EM/figures/generated/*.pdf``  (one per figure)
+       ``manuscrits/archives/semi-supervised_EM/figures/generated/*.tex``  (table rows for \\input{})
 
 Figures produced
 ----------------
@@ -78,7 +78,9 @@ DEFAULT_IN = REPO_ROOT / "data" / "experiments" / "mc_results.csv"
 # The V1 draft (formerly paper/, then docs/semi-superved_EM/) is deleted; its
 # archived 06_experiments.tex expects these outputs in figures/generated/ next
 # to it. The attic is local and not tracked by git.
-DEFAULT_FIG_DIR = REPO_ROOT / "docs" / "attic" / "semi-supervised_EM" / "figures" / "generated"
+DEFAULT_FIG_DIR = (
+    REPO_ROOT / "manuscrits" / "archives" / "semi-supervised_EM" / "figures" / "generated"
+)
 
 # ---------------------------------------------------------------------------
 # Colour / style constants

@@ -4,7 +4,9 @@
 # claude
 .claude
 
-# Documentation sources (Word/PDF reports)
+# Papers, reports, notes and source documents (LaTeX/Word/PDF) -- local only
+manuscrits/
+# former name of manuscrits/ (kept ignored: older checkouts and worktrees may still have it)
 docs/
 
 # Research paper sources (LaTeX) — kept out of the repo

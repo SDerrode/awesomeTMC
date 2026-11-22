@@ -7,7 +7,7 @@ Simulation study for "On Fast Optimal Filtering in Gaussian Switching Systems".
 Runs ten jump-filtering experiments (E1–E9, including E3′) and writes one
 vector figure per experiment + a ``results.json`` to an output directory.
 
-    python -m awesometmc.experiments.study docs/rapport_experimental
+    python -m awesometmc.experiments.study manuscrits/rapports/rapport_experimental
 
 E1  Exactness        ngh_kf == brute-force Bayesian filter (all Kᴺ histories)
 E2  Speed            wall-time vs N: linear, as fast as a single pairwise Kalman filter
@@ -1798,4 +1798,4 @@ def main(outdir: str | Path) -> dict:
 if __name__ == "__main__":
     import sys
 
-    main(sys.argv[1] if len(sys.argv) > 1 else "docs/rapport_experimental")
+    main(sys.argv[1] if len(sys.argv) > 1 else "manuscrits/rapports/rapport_experimental")

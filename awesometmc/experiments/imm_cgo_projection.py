@@ -428,7 +428,7 @@ def main():
     ap.add_argument("--seeds", type=int, default=200)
     ap.add_argument("--grid", type=int, default=21)
     ap.add_argument("--paths", nargs="+", default=list(PATHS))
-    ap.add_argument("--out", type=Path, default=Path("docs/rapport_imm_cgo"))
+    ap.add_argument("--out", type=Path, default=Path("manuscrits/rapports/rapport_imm_cgo"))
     ap.add_argument(
         "--optimise", action="store_true", help="also tune CGO parameters for filtering (slow)"
     )
