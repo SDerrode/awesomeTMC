@@ -125,6 +125,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`python -m awesometmc.experiments.tac_simulations all`** (also the default without
   argument) **now runs cases `e` and `d`**, the two experiments of the paper, instead of
   `a`, `b` and `d`. Run `a` and `b` by name to get the experiments of the earlier versions.
+- `tac_rivers.py`: the last row of `table_d.tex` is labelled "non-recursive regression", as in
+  Table II of the paper (it was "static regression"); the regenerated table is now identical
+  to the one of the paper. The numbers are unchanged.
 - **The local, untracked folder of papers and reports is renamed `docs/` → `manuscrits/`** and
   split into `papiers/`, `rapports/`, `notes/`, `sources/` and `archives/`. The inner folder
   names are unchanged (`docs/rapport_experimental` is now

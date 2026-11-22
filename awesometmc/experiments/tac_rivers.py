@@ -547,7 +547,7 @@ def _table_d(res, path):
         "cgomsm2": "CGOMSM2",
         "thgmsm_rbpf": "THGMSM (RBPF)",
         "kalman_K1": "Kalman ($K = 1$)",
-        "static": "static regression",
+        "static": "non-recursive regression",  # the wording of Table II of the paper
     }
     runs = [r for r in res["runs"] if r["split"] == "A"]
     lines = [
