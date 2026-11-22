@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Reproduction of Section V of the IEEE TAC paper (CGOMSM1 vs CGOMSM2).
+"""Reproduction of the experiments of the IEEE TAC paper (CGOMSM1 vs CGOMSM2).
+
+In the paper, Sections V-A to V-C are case ``e`` (stationary THGMSMs) and Section V-D is case ``d``
+(river discharge); ``all``, the default, runs these two cases. Cases ``a``, ``b``, ``c``, ``transient``
+and ``timing`` are the experiments of earlier versions of the manuscript; they are kept, but they are
+not in the paper and are not run by ``all``.
 
 Paper: S. Derrode, C. Fernandes, U. Hubert-Almuzara, F. Lehmann, W. Pieczynski, "On a New Family of
 Models for Exact Fast Filtering in Gaussian Markov Switching Systems". CGOMSM1 = THGMSM with C = 0;
@@ -10,7 +15,7 @@ not call the library's ``GSSFilter``. They are: the exact filter of the CGOMSM1 
 propagated and mixed over r_n), the exact filter of the CGOMSM2 (Propositions 3-4 of the paper, with
 the first transition for an arbitrary initial law), the exact Bayes filter by enumeration of the K^N
 regime paths, a Rao-Blackwellized particle filter (RBPF, optimal proposal), and their versions with a
-known input (Section V-C). ``tests/test_tac_simulations.py`` checks them against the enumeration
+known input (cases ``c`` and ``d``). ``tests/test_tac_simulations.py`` checks them against the enumeration
 (agreement to about 1e-12).
 
 Model (dynamic form, regime j = R_{n+1}):
@@ -19,10 +24,10 @@ Model (dynamic form, regime j = R_{n+1}):
 CGOMSM1 of a THGMSM: same parameters with c_j := 0.
 CGOMSM2 of a THGMSM: same parameters with a_j := rho_j/sv_j c_j, b_j := rho_j/sv_j d_j.
 
-Case ``a`` -- Section V-A (Table I -> table_a.tex, lambda figure -> fig_a_lambda.pdf):
+Case ``a`` -- earlier version, not in the paper (table_a.tex, lambda figure fig_a_lambda.pdf):
     regime-known estimators at n = 2, closed forms (no simulation); tau_k = EI_k / ER, checked by a
     Monte Carlo simulation of the dynamic form.
-Case ``b`` -- Section V-B (Table II -> table_b.tex, path figure -> fig_b_homotopy.pdf):
+Case ``b`` -- earlier version, not in the paper (table_b.tex, path figure fig_b_homotopy.pdf):
     path F^eps = (1 - eps) F^1 + eps F^2 from the CGOMSM1 (eps = 0) to the CGOMSM2 (eps = 1). Data
     simulated with THGMSM(eps); the exact filters of the CGOMSM1 and of the CGOMSM2 (frozen parameters)
     are compared with two references:
@@ -33,7 +38,7 @@ Case ``b`` -- Section V-B (Table II -> table_b.tex, path figure -> fig_b_homotop
     eps* = crossing point of the two excess curves. 95% Monte Carlo half-widths by the delta method
     (ratio of means), bootstrap over sequences for eps* and for the maxima over eps. The per-sequence
     errors are stored in exp_b_seq.npz.
-Case ``c`` -- Section V-C (Table III -> table_c.tex, trace -> fig_c_vehicle.pdf): real driving data
+Case ``c`` -- earlier version, not in the paper (table_c.tex, trace fig_c_vehicle.pdf): real driving data
     (Figshare 10.6084/m9.figshare.28078274.v1, aggressive driver, 100 Hz, recordings longer than 5 s,
     subsampled to 10 Hz). X = yaw rate, Y = lateral acceleration, u_n = (steering angle at n + 1, 1),
     regime = speed band (labelled for training only, hidden in the filters). The variables are divided
@@ -49,12 +54,13 @@ Case ``c`` -- Section V-C (Table III -> table_c.tex, trace -> fig_c_vehicle.pdf)
 Case ``transient`` (also run by ``b``): at the two ends of the path, where the optimal filter is exact,
     excess of the other family over the first n_short steps and over the following ones (exp_b.json).
 Case ``timing``: computing time per time step of the filters of case b (timing.json).
-Case ``d`` (Section V-C of the current version, ``exp_d``): river discharge with a measured tributary
-    inflow as known input (USGS NWIS, three reaches); see ``awesometmc/experiments/tac_rivers.py``. Case ``c``
-    (vehicle data) is the real-data study of an earlier version of the paper.
-Case ``e`` (``exp_e``, not run by ``all``): CGOMSM1 and CGOMSM2 as approximate models of stationary
-    THGMSMs, errors of the estimate of X_3 given y_{1:3} by quadrature (no simulation), study of
-    U. Hubert-Almuzara; see ``awesometmc/experiments/tac_stationary.py``.
+Case ``d`` -- Section V-D of the paper (Table II -> table_d.tex, Fig. 5 -> fig_d_rivers.pdf): river
+    discharge with a measured tributary inflow as known input (USGS NWIS, three reaches); see
+    ``awesometmc/experiments/tac_rivers.py``.
+Case ``e`` -- Sections V-A to V-C of the paper (Fig. 4 -> fig_e_stationary.pdf):
+    CGOMSM1 and CGOMSM2 as approximate models of stationary THGMSMs, errors of the estimate of X_3
+    given y_{1:3} by quadrature (no simulation), study of U. Hubert-Almuzara; see
+    ``awesometmc/experiments/tac_stationary.py``.
 Case ``replot``: regenerates the tables and figures from the stored JSON files, without simulating.
 
 Run:  python -m awesometmc.experiments.tac_simulations [a|b|c|d|e|all|transient|timing|replot] [--out DIR]
@@ -165,7 +171,7 @@ def stationary_P(p12):
     return np.array([[1 - s, s], [s, 1 - s]]), np.array([0.5, 0.5])
 
 
-# ----------------------------------------------------------------------------- V-A (closed form)
+# ----------------------------------------------------------------------------- case a (closed form)
 def _cov12(m, i, j):
     """Cov of (X1, Y1, X2, Y2) given r1 = i, r2 = j."""
     S1, Fj = SZ1(m, i), F(m, j)
@@ -245,7 +251,7 @@ LEVELS_A = dict(c=(0.2, 1.0), g=(0.05, 0.5), rf=(0.2, 0.7))
 
 
 def design_a(c_lvl, g_lvl, rf, lam=0.5, p12=0.1):
-    """THGMSM of Section V-A for coupling gamma = c_lvl, gap g = g_lvl and noise correlation kappa = rf."""
+    """THGMSM of case ``a`` for coupling gamma = c_lvl, gap g = g_lvl and noise correlation kappa = rf."""
     su, sv, d = np.array(BASE_A["su"]), np.array(BASE_A["sv"]), np.array(BASE_A["d"])
     rho = rf * np.sqrt(su * sv) * np.array([1.0, -1.0])
     c = c_lvl * np.array([1.0, -0.8])
@@ -397,7 +403,7 @@ def _plot_a(lam, curves, path, lam_table=0.5):
     plt.close(fig)
 
 
-# ----------------------------------------------------------------------------- simulation and filters (V-B)
+# ----------------------------------------------------------------------------- simulation and filters (case b)
 def simulate(m, N, rng):
     # multivariate_normal (SVD factorization) is kept so that the published numbers are reproduced;
     # the factorization comes from LAPACK, so the last digits may differ on another platform.
@@ -566,7 +572,7 @@ def cgomsm2_filter(m, y, return_var=False):
     return (E, V) if return_var else E
 
 
-# V-B design (TAC paper, Sec. V-B, Table II): common Sigma_Z1, Sigma_W, c, d; four experiments
+# design of case b: common Sigma_Z1, Sigma_W, c, d; four experiments
 # (p12 x {a, b})
 BASE_B = dict(
     c=[0.8, -0.6],
@@ -915,7 +921,7 @@ def _plot_b(res, path):
     plt.close(fig)
 
 
-# ----------------------------------------------------------------------------- Section V-C: real data
+# ----------------------------------------------------------------------------- case c: real data
 SUB_C = 10  # 100 Hz -> 10 Hz
 TEST_EVERY = 4  # every 4th file (sorted order) is held out
 MIN_RAW = 500  # recordings of at most 5 s (500 samples at 100 Hz) are discarded, at every rate
@@ -1454,14 +1460,14 @@ def main():
     if a.which == "timing":
         print(json.dumps(timing(a.out, n_part=a.particles), indent=1))
         return
-    if a.which in ("a", "all"):
+    if a.which == "a":
         for r in exp_a(a.out):
             print(
                 f"exp {r['exp']}: tau1={r['tau1']:.4f} (MC {r['mc']['tau1']:.4f}"
                 f" +- {r['mc']['tau1_se']:.1e})  tau2={r['tau2']:.4f} (MC {r['mc']['tau2']:.4f}"
                 f" +- {r['mc']['tau2_se']:.1e})"
             )
-    if a.which in ("b", "all"):
+    if a.which == "b":
         res = exp_b(a.out, a.seeds_short, a.seeds_long, a.particles, n_eps=a.n_eps)
         for k, r in res.items():
             bs = r["bootstrap"]
@@ -1477,14 +1483,15 @@ def main():
                 print(f"{key:8s} {name:12s} RMSE={sc['rmse']:.3f}  loglik={sc['loglik']:.3f}")
         for row in res["grid"]:
             print(row)
+    # the two cases of the paper, in the order of its Section V
+    if a.which in ("e", "all"):  # stationary THGMSMs (quadrature); sensitivity: see tac_stationary
+        from awesometmc.experiments.tac_stationary import _print_e, exp_e
+
+        _print_e(exp_e(a.out))
     if a.which in ("d", "all"):  # uses the cached USGS data of data/real/rivers
         from awesometmc.experiments.tac_rivers import exp_d
 
         exp_d(a.out)
-    if a.which == "e":  # stationary THGMSMs (quadrature); sensitivity study: see tac_stationary
-        from awesometmc.experiments.tac_stationary import _print_e, exp_e
-
-        _print_e(exp_e(a.out))
 
 
 if __name__ == "__main__":

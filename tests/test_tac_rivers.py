@@ -2,7 +2,7 @@
 """
 tests/test_tac_rivers.py
 ========================
-Checks of ``awesometmc/experiments/tac_rivers.py`` (Section V-C of the IEEE TAC paper, river discharge):
+Checks of ``awesometmc/experiments/tac_rivers.py`` (Section V-D of the IEEE TAC paper, river discharge):
 
 * the exact CGOMSM1 / CGOMSM2 filters with input against brute-force enumeration of the regime
   paths (means, log-likelihood increments) and against ``tac_simulations.cgo_filter_c``;

@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [3.4.0] — 2026-11-19
+## [3.4.0] — 2026-11-22
 
 ### Added
 - **Smoothing of pair-indexed models.** `reweight_smoother`, `regime_smoother(kernel="c0")`
@@ -117,6 +117,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`python -m awesometmc.experiments.imm_cgo_projection [--seeds 200] [--out DIR]`).
 
 ### Changed
+- README, docstrings and test headers aligned with the final numbering of Section V of the
+  IEEE TAC paper: case `e` (`tac_stationary.py`) is Sections V-A to V-C (Fig. 4), case `d`
+  (`tac_rivers.py`) is Section V-D (Table II, Fig. 5); cases `a`, `b`, `c`, `transient` and
+  `timing` belong to earlier versions of the manuscript and are no longer in the paper (they
+  are kept and still run).
+- **`python -m awesometmc.experiments.tac_simulations all`** (also the default without
+  argument) **now runs cases `e` and `d`**, the two experiments of the paper, instead of
+  `a`, `b` and `d`. Run `a` and `b` by name to get the experiments of the earlier versions.
+- `tac_rivers.py`: the last row of `table_d.tex` is labelled "non-recursive regression", as in
+  Table II of the paper (it was "static regression"); the regenerated table is now identical
+  to the one of the paper. The numbers are unchanged.
 - **The local, untracked folder of papers and reports is renamed `docs/` → `manuscrits/`** and
   split into `papiers/`, `rapports/`, `notes/`, `sources/` and `archives/`. The inner folder
   names are unchanged (`docs/rapport_experimental` is now

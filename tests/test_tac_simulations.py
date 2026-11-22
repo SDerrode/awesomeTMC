@@ -2,15 +2,15 @@
 """
 tests/test_tac_simulations.py
 =============================
-Checks of the self-contained filters of ``awesometmc/experiments/tac_simulations.py`` (Section V of the
-IEEE TAC paper) against brute-force enumeration of the regime paths:
+Checks of the self-contained filters of ``awesometmc/experiments/tac_simulations.py`` (experiments of
+the IEEE TAC paper and of its earlier versions) against brute-force enumeration of the regime paths:
 
-* exact filter of the CGOMSM1 and of the CGOMSM2 (means and variances), scalar case of Section V-B;
+* exact filter of the CGOMSM1 and of the CGOMSM2 (means and variances), scalar case of case ``b``;
 * the vectorized enumeration ``exact_filter`` against a naive path-by-path Kalman bank;
-* the exact CGOMSM1 / CGOMSM2 filters with a known input (Section V-C), including the
+* the exact CGOMSM1 / CGOMSM2 filters with a known input (case ``c``), including the
   log-likelihood, for an arbitrary (non-slaved) initial law;
 * ``rbpf_c`` with K = 1 (Kalman filter) and the family checks of ``cgo_filter_c``;
-* the closed forms of Section V-A against a Monte Carlo simulation of the dynamic form;
+* the closed forms of case ``a`` against a Monte Carlo simulation of the dynamic form;
 * the generated LaTeX tables and the integrity check of the dataset download.
 """
 
@@ -72,7 +72,7 @@ def _brute_force(reg, P, p1, y, u=None):
 
 
 def _reg_from_b(m):
-    """Section V-B model (dict of arrays) -> list of per-regime dicts for _brute_force."""
+    """Model of case ``b`` (dict of arrays) -> list of per-regime dicts for _brute_force."""
     return [
         dict(
             a=m["a"][j],
@@ -89,7 +89,7 @@ def _reg_from_b(m):
 
 
 def _random_c_model(rng, K, family):
-    """Random model in the format of Section V-C (input u_n = (u1, 1)), arbitrary initial law."""
+    """Random model in the format of case ``c`` (input u_n = (u1, 1)), arbitrary initial law."""
     reg = []
     for _ in range(K):
         su, sv = rng.uniform(0.3, 1.0, 2)
@@ -141,7 +141,7 @@ def _simulate_c(m, N, rng):
     return y, u
 
 
-# --------------------------------------------------------------------------- Section V-B filters
+# --------------------------------------------------------------------------- filters of case b
 
 
 def test_exact_filter_matches_path_by_path_kalman():
@@ -190,7 +190,7 @@ def test_crossing_and_ratio():
     assert hw == pytest.approx(1.96 * np.std(num - 2.0 * den, ddof=1) / np.sqrt(3))
 
 
-# --------------------------------------------------------------------------- Section V-C filters
+# --------------------------------------------------------------------------- filters of case c
 
 
 @pytest.mark.parametrize("family", ["cgomsm1", "cgomsm2"])
@@ -239,7 +239,7 @@ def test_fit_c_produces_constrained_models():
     np.testing.assert_allclose(mods["thgmsm"]["P"].sum(axis=1), 1.0)
 
 
-# --------------------------------------------------------------------------- Section V-A
+# --------------------------------------------------------------------------- case a
 
 
 def test_closed_forms_of_section_va_match_monte_carlo():
@@ -309,3 +309,22 @@ def test_dataset_download_is_checked(tmp_path, monkeypatch):
     monkeypatch.setattr(mv.urllib.request, "urlopen", lambda *a, **k: _Resp())
     with pytest.raises(RuntimeError, match="MD5"):
         mv._ensure_data(tmp_path / "cache")
+
+
+# --------------------------------------------------------------------------- command line
+@pytest.mark.parametrize(
+    "argv,expected",
+    [([], ["e", "d"]), (["all"], ["e", "d"]), (["e"], ["e"]), (["d"], ["d"]), (["a"], ["a"])],
+)
+def test_all_runs_the_two_cases_of_the_paper(monkeypatch, tmp_path, argv, expected):
+    from awesometmc.experiments import tac_rivers, tac_stationary
+
+    called = []
+    monkeypatch.setattr(T, "exp_a", lambda out: called.append("a") or [])
+    monkeypatch.setattr(T, "exp_b", lambda *a, **k: called.append("b") or {})
+    monkeypatch.setattr(tac_rivers, "exp_d", lambda out: called.append("d"))
+    monkeypatch.setattr(tac_stationary, "exp_e", lambda out: called.append("e") or {"rows": []})
+    monkeypatch.setattr(tac_stationary, "_print_e", lambda res: None)
+    monkeypatch.setattr("sys.argv", ["tac_simulations", *argv, "--out", str(tmp_path)])
+    T.main()
+    assert called == expected

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Section V-C of the TAC paper (case ``d`` of ``tac_simulations``): river discharge, USGS NWIS.
+"""Section V-D of the TAC paper (case ``d`` of ``tac_simulations``): river discharge, USGS NWIS.
 
 Three river reaches of the eastern United States, 2014-2023, 3 h steps:
     X_n = log discharge at the downstream gauge (hidden state; its record is the ground truth),
@@ -547,7 +547,7 @@ def _table_d(res, path):
         "cgomsm2": "CGOMSM2",
         "thgmsm_rbpf": "THGMSM (RBPF)",
         "kalman_K1": "Kalman ($K = 1$)",
-        "static": "static regression",
+        "static": "non-recursive regression",  # the wording of Table II of the paper
     }
     runs = [r for r in res["runs"] if r["split"] == "A"]
     lines = [

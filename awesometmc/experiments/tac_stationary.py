@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Section V of the TAC paper (case ``e`` of ``tac_simulations``): stationary THGMSMs.
+"""Sections V-A to V-C of the TAC paper (case ``e`` of ``tac_simulations``): stationary THGMSMs.
 
 CGOMSM1s and CGOMSM2s are compared as approximate models of a THGMSM G that belongs to neither
 family. The data follow G, all the parameters are known, the regimes are hidden, and X_3 is estimated
