@@ -2,7 +2,7 @@
 """
 awesometmc/experiments/make_paper_figures.py
 =====================================
-Regenerate, into ``manuscrits/papiers/NGH-MSM_V2/figures/``, exactly the figures used in the
+Regenerate, into ``manuscrits/papiers/CGOMSM2/figures/``, exactly the figures used in the
 IEEE TAC paper *Marginal Markovianity and Exact Filtering in Gaussian Switching
 Systems*:
 
@@ -26,7 +26,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-OUT = Path("manuscrits/papiers/NGH-MSM_V2")
+OUT = Path("manuscrits/papiers/CGOMSM2")
 FIG = OUT / "figures"
 
 

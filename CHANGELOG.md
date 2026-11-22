@@ -118,9 +118,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **The local, untracked folder of papers and reports is renamed `docs/` → `manuscrits/`** and
-  split into `papiers/`, `rapports/`, `notes/`, `sources/` and `archives/` (the inner folder
-  names are unchanged: `docs/NGH-MSM_V2` is now `manuscrits/papiers/NGH-MSM_V2`,
-  `docs/rapport_experimental` is now `manuscrits/rapports/rapport_experimental`, …). The
+  split into `papiers/`, `rapports/`, `notes/`, `sources/` and `archives/`. The inner folder
+  names are unchanged (`docs/rapport_experimental` is now
+  `manuscrits/rapports/rapport_experimental`, …), except the folder of the TAC paper, whose
+  name no longer matched the vocabulary of the paper: `docs/NGH-MSM_V2` is now
+  `manuscrits/papiers/CGOMSM2`. The
   default output paths of `study.py`, `make_real_structure_fig.py`,
   `make_vehicle_consigne_fig.py`, `make_paper_figures.py`, `make_cns_figures.py` and
   `imm_cgo_projection.py`, the docstrings, the README, the wiki and the notebooks follow;
