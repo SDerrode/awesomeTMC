@@ -309,3 +309,22 @@ def test_dataset_download_is_checked(tmp_path, monkeypatch):
     monkeypatch.setattr(mv.urllib.request, "urlopen", lambda *a, **k: _Resp())
     with pytest.raises(RuntimeError, match="MD5"):
         mv._ensure_data(tmp_path / "cache")
+
+
+# --------------------------------------------------------------------------- command line
+@pytest.mark.parametrize(
+    "argv,expected",
+    [([], ["e", "d"]), (["all"], ["e", "d"]), (["e"], ["e"]), (["d"], ["d"]), (["a"], ["a"])],
+)
+def test_all_runs_the_two_cases_of_the_paper(monkeypatch, tmp_path, argv, expected):
+    from awesometmc.experiments import tac_rivers, tac_stationary
+
+    called = []
+    monkeypatch.setattr(T, "exp_a", lambda out: called.append("a") or [])
+    monkeypatch.setattr(T, "exp_b", lambda *a, **k: called.append("b") or {})
+    monkeypatch.setattr(tac_rivers, "exp_d", lambda out: called.append("d"))
+    monkeypatch.setattr(tac_stationary, "exp_e", lambda out: called.append("e") or {"rows": []})
+    monkeypatch.setattr(tac_stationary, "_print_e", lambda res: None)
+    monkeypatch.setattr("sys.argv", ["tac_simulations", *argv, "--out", str(tmp_path)])
+    T.main()
+    assert called == expected

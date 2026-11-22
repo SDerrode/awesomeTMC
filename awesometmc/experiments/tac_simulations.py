@@ -2,8 +2,9 @@
 """Reproduction of the experiments of the IEEE TAC paper (CGOMSM1 vs CGOMSM2).
 
 In the paper, Sections V-A to V-C are case ``e`` (stationary THGMSMs) and Section V-D is case ``d``
-(river discharge). Cases ``a``, ``b``, ``c``, ``transient`` and ``timing`` are the experiments of
-earlier versions of the manuscript; they are kept, but they are not in the paper.
+(river discharge); ``all``, the default, runs these two cases. Cases ``a``, ``b``, ``c``, ``transient``
+and ``timing`` are the experiments of earlier versions of the manuscript; they are kept, but they are
+not in the paper and are not run by ``all``.
 
 Paper: S. Derrode, C. Fernandes, U. Hubert-Almuzara, F. Lehmann, W. Pieczynski, "On a New Family of
 Models for Exact Fast Filtering in Gaussian Markov Switching Systems". CGOMSM1 = THGMSM with C = 0;
@@ -56,7 +57,7 @@ Case ``timing``: computing time per time step of the filters of case b (timing.j
 Case ``d`` -- Section V-D of the paper (Table II -> table_d.tex, Fig. 5 -> fig_d_rivers.pdf): river
     discharge with a measured tributary inflow as known input (USGS NWIS, three reaches); see
     ``awesometmc/experiments/tac_rivers.py``.
-Case ``e`` -- Sections V-A to V-C of the paper (Fig. 4 -> fig_e_stationary.pdf; not run by ``all``):
+Case ``e`` -- Sections V-A to V-C of the paper (Fig. 4 -> fig_e_stationary.pdf):
     CGOMSM1 and CGOMSM2 as approximate models of stationary THGMSMs, errors of the estimate of X_3
     given y_{1:3} by quadrature (no simulation), study of U. Hubert-Almuzara; see
     ``awesometmc/experiments/tac_stationary.py``.
@@ -1459,14 +1460,14 @@ def main():
     if a.which == "timing":
         print(json.dumps(timing(a.out, n_part=a.particles), indent=1))
         return
-    if a.which in ("a", "all"):
+    if a.which == "a":
         for r in exp_a(a.out):
             print(
                 f"exp {r['exp']}: tau1={r['tau1']:.4f} (MC {r['mc']['tau1']:.4f}"
                 f" +- {r['mc']['tau1_se']:.1e})  tau2={r['tau2']:.4f} (MC {r['mc']['tau2']:.4f}"
                 f" +- {r['mc']['tau2_se']:.1e})"
             )
-    if a.which in ("b", "all"):
+    if a.which == "b":
         res = exp_b(a.out, a.seeds_short, a.seeds_long, a.particles, n_eps=a.n_eps)
         for k, r in res.items():
             bs = r["bootstrap"]
@@ -1482,14 +1483,15 @@ def main():
                 print(f"{key:8s} {name:12s} RMSE={sc['rmse']:.3f}  loglik={sc['loglik']:.3f}")
         for row in res["grid"]:
             print(row)
+    # the two cases of the paper, in the order of its Section V
+    if a.which in ("e", "all"):  # stationary THGMSMs (quadrature); sensitivity: see tac_stationary
+        from awesometmc.experiments.tac_stationary import _print_e, exp_e
+
+        _print_e(exp_e(a.out))
     if a.which in ("d", "all"):  # uses the cached USGS data of data/real/rivers
         from awesometmc.experiments.tac_rivers import exp_d
 
         exp_d(a.out)
-    if a.which == "e":  # stationary THGMSMs (quadrature); sensitivity study: see tac_stationary
-        from awesometmc.experiments.tac_stationary import _print_e, exp_e
-
-        _print_e(exp_e(a.out))
 
 
 if __name__ == "__main__":

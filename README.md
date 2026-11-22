@@ -442,11 +442,11 @@ they are kept, but they are not in the paper.
 # the paper
 python -m awesometmc.experiments.tac_simulations e          # Sections V-A to V-C  (~75 s, no simulation)
 python -m awesometmc.experiments.tac_simulations d          # Section V-D  (~2 min, cached USGS data in data/real/rivers)
+python -m awesometmc.experiments.tac_simulations all        # e and d (the default)
 python -m awesometmc.experiments.tac_simulations replot     # tables and figures from the stored results
 # earlier versions of the manuscript (not in the paper)
 python -m awesometmc.experiments.tac_simulations a          # error increase at n = 2, regime known  (~10 s)
 python -m awesometmc.experiments.tac_simulations b          # path from a CGOMSM1 to a CGOMSM2  (~15 min)
-python -m awesometmc.experiments.tac_simulations all        # a, b and d
 python -m awesometmc.experiments.tac_simulations timing     # computing times per time step
 python -m awesometmc.experiments.tac_simulations transient  # only the transient study of case b
 ```

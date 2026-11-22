@@ -121,7 +121,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   IEEE TAC paper: case `e` (`tac_stationary.py`) is Sections V-A to V-C (Fig. 4), case `d`
   (`tac_rivers.py`) is Section V-D (Table II, Fig. 5); cases `a`, `b`, `c`, `transient` and
   `timing` belong to earlier versions of the manuscript and are no longer in the paper (they
-  are kept and still run). No code change.
+  are kept and still run).
+- **`python -m awesometmc.experiments.tac_simulations all`** (also the default without
+  argument) **now runs cases `e` and `d`**, the two experiments of the paper, instead of
+  `a`, `b` and `d`. Run `a` and `b` by name to get the experiments of the earlier versions.
 - **The local, untracked folder of papers and reports is renamed `docs/` → `manuscrits/`** and
   split into `papiers/`, `rapports/`, `notes/`, `sources/` and `archives/`. The inner folder
   names are unchanged (`docs/rapport_experimental` is now
