@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Section V-C of the TAC paper (case ``d`` of ``tac_simulations``): river discharge, USGS NWIS.
+"""Section V-D of the TAC paper (case ``d`` of ``tac_simulations``): river discharge, USGS NWIS.
 
 Three river reaches of the eastern United States, 2014-2023, 3 h steps:
     X_n = log discharge at the downstream gauge (hidden state; its record is the ground truth),

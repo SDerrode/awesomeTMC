@@ -2,8 +2,8 @@
 """
 tests/test_tac_stationary.py
 ============================
-Checks of ``awesometmc/experiments/tac_stationary.py`` (stationary THGMSMs, Section V of the IEEE TAC
-paper):
+Checks of ``awesometmc/experiments/tac_stationary.py`` (stationary THGMSMs, Sections V-A to V-C of
+the IEEE TAC paper):
 
 * construction of the data-generating THGMSM: stationarity, prescribed conditional autoregression,
   coefficients of the two families, positive definite noise covariances;
