@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Docstrings of `awesometmc/utils/ab_constraint.py`.** They no longer cite a remark that is not in the submitted TAC paper: the module docstring gives a self-contained scalar example of a model with a zero (PU) residual that is not AB-constrained, and `compute_pu_residual` refers to Proposition "nsc"(i).
+
 ## [3.4.0] — 2026-11-22
 
 ### Added
