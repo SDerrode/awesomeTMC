@@ -28,9 +28,9 @@ property (PU), the conditional independence of X_{n+1} and Y_n given
 (X_n, Y_n) — the one whose covariance given r_n = j is the noise covariance
 Σ_W(j), i.e. the stationary law of an AB model (Proposition 3). AB implies
 (PU) for every law, so the (PU) residuals are necessary for AB, but they are
-**not sufficient**: the TAC paper (Remark "forms") gives a K = 1 example
-(A = 0.5, B = 0, C = 0.5, D = 0.3, Σ_W = I − F Fᵀ, stationary law) with (PU)
-satisfied and A − M C ≈ 0.69, and
+**not sufficient**: the scalar K = 1 model A = 0, B = 0.5, C = 1, D = 0,
+Σ_U = 2, Σ_V = 1, Δ = 1 has a zero (PU) residual
+(:func:`compute_pu_residual`) while A − M C = −1 and B − M D = 0.5, and
 :func:`awesometmc.experiments.cns_exactness.jmls_cross_annihilation_model` is a
 K = 2, q = 2 jump Markov linear system on which the regression residuals
 vanish while the constant-gain filter is biased. These diagnostics live under
@@ -203,8 +203,9 @@ def compute_pu_residual(
     covariance ``Σ_W(k)`` (the stationary one of an AB model). This is a
     **necessary** condition for AB (AB implies it for every law and every
     pair), but **not sufficient**: it ignores the cross pairs ``(j, k)``,
-    ``j ≠ k``, and it is a condition on one particular law (the TAC paper,
-    Remark "forms"). The AB test is :func:`ab_residual_max` /
+    ``j ≠ k``, and it is a condition on one particular law, whereas the TAC
+    paper (Proposition "nsc"(i)) requires the independence for every initial
+    covariance. The AB test is :func:`ab_residual_max` /
     :func:`compute_ab_block_residuals`.
 
     Returns
